@@ -12,6 +12,7 @@
       --stroke:rgba(255,255,255,.16);
       --gap:16px;
     }
+
     *{box-sizing:border-box}
     html,body{height:100%}
 
@@ -21,10 +22,10 @@
       color:var(--ink);
       display:flex;
       flex-direction:column;
-      /* фон – сюда подставишь свой URL */
       background:
-        linear-gradient(135deg,rgba(4,6,20,.92),rgba(9,12,32,.96)),
-        url("https://example.com/your-snow-village-bg.jpg") center/cover fixed no-repeat;
+        linear-gradient(135deg,rgba(4,6,20,.94),rgba(9,12,32,.97)),
+        url("https://i.postimg.cc/0ykZXTBp/Albedo-Base-XL-Highquality-3D-CGI-winter-landscape-background-i-3-(1).jpg")
+          center/cover fixed no-repeat;
     }
 
     header{
@@ -32,7 +33,7 @@
       padding:16px 20px;
       position:sticky; top:0; z-index:10;
       backdrop-filter:blur(18px);
-      background:linear-gradient(135deg,rgba(4,6,20,.92),rgba(9,12,32,.96));
+      background:linear-gradient(135deg,rgba(4,6,20,.96),rgba(9,12,32,.98));
       border-bottom:1px solid rgba(255,255,255,.12);
       box-shadow:0 18px 40px rgba(0,0,0,.55);
     }
@@ -57,9 +58,9 @@
     /* glass‑карточки */
     .card{
       background:
-        radial-gradient(circle at 0 0, rgba(255,255,255,.12), transparent 55%),
-        radial-gradient(circle at 100% 100%, rgba(255,255,255,.10), transparent 50%),
-        linear-gradient(145deg,rgba(13,18,40,.86),rgba(4,7,18,.88));
+        radial-gradient(circle at 0 0, rgba(255,255,255,.10), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(255,255,255,.08), transparent 50%),
+        linear-gradient(145deg,rgba(13,18,40,.90),rgba(4,7,18,.92));
       border-radius:18px;
       padding:18px;
       border:1px solid rgba(255,255,255,.16);
@@ -89,7 +90,7 @@
     textarea,
     select{
       width:100%;
-      background:linear-gradient(135deg,rgba(8,10,30,.95),rgba(16,20,45,.92));
+      background:linear-gradient(135deg,rgba(8,10,30,.96),rgba(16,20,45,.96));
       color:#fff;
       border-radius:12px;
       border:1px solid rgba(255,255,255,.18);
@@ -99,13 +100,21 @@
       box-shadow:0 12px 28px rgba(0,0,0,.55);
       transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
     }
+
+    /* выпадающий список тоже тёмный */
+    select option{
+      background:#050816;
+      color:#f5f5ff;
+    }
+
     textarea{min-height:110px; resize:vertical}
+
     input:focus, textarea:focus, select:focus{
       border-color:var(--ui-acc);
       box-shadow:
         0 0 18px rgba(255,215,0,.35),
         0 12px 30px rgba(0,0,0,.7);
-      background:linear-gradient(135deg,rgba(10,12,35,.98),rgba(22,26,60,.96));
+      background:linear-gradient(135deg,rgba(10,12,35,.98),rgba(22,26,60,.97));
     }
 
     .row{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap)}
@@ -177,7 +186,6 @@
       backdrop-filter:blur(18px);
     }
     .preview-controls{display:grid; grid-template-columns:1fr auto; gap:12px}
-
     .preview-item{
       position:relative;
       display:inline-flex;
@@ -204,6 +212,7 @@
       margin-bottom:4px;
     }
     .qa-col textarea{width:100%; resize:vertical}
+
     .timer-config{margin:10px 0 4px;}
 
     /* Размер превью через переменные (для картинок) */
@@ -254,6 +263,7 @@
     <!-- ЛЕВАЯ КОЛОНКА -->
     <section class="card stack">
       <h2>⚙️ Общие настройки</h2>
+
       <div class="row">
         <div>
           <label>Язык / режим</label>
@@ -285,10 +295,11 @@
           <input type="number" id="speed" value="5" min="1" max="10">
         </div>
         <div>
-          <label>Направление движения</label>
+          <label>Режим движения</label>
           <select id="direction">
             <option value="down">Сверху вниз</option>
             <option value="up">Снизу вверх</option>
+            <option value="random">Рандом</option>
           </select>
         </div>
       </div>
@@ -340,6 +351,7 @@
         <label>Фон — цвет</label>
         <input type="color" id="bgColor" value="#1a1a1a">
       </div>
+
       <label>Фоны-держатели (по одному URL на строке)</label>
       <textarea id="bgImages" placeholder="https://.../holder1.png
 https://.../holder2.png"></textarea>
@@ -416,6 +428,7 @@ https://.../holder2.png"></textarea>
     <!-- ПРАВАЯ КОЛОНКА -->
     <section class="card stack">
       <h2>🎯 Вопросы и ответы</h2>
+
       <div class="qa-grid">
         <div class="qa-col">
           <label for="qCol">Вопросы</label>
@@ -436,6 +449,11 @@ https://.../holder2.png"></textarea>
         Брать неверные ответы из правильных других вопросов, если строка пустая
       </label>
 
+      <label class="inline">
+        <input type="checkbox" id="randomLevels">
+        Рандомный порядок вопросов
+      </label>
+
       <div class="timer-config">
         <label for="globalTimer">Общий таймер (сек., 0 — без таймера)</label>
         <input type="number" id="globalTimer" min="0" step="5" value="0">
@@ -446,10 +464,12 @@ https://.../holder2.png"></textarea>
         <button id="saveBtn">💾 Сохранить и получить iframe</button>
         <button id="testBtn" class="btn-ghost">🔍 Валидация JSON</button>
       </div>
+
       <div class="result" style="margin-top:10px">
         <textarea id="iframeOut" readonly placeholder="Здесь появится iframe для Genially"></textarea>
         <button id="copyBtn" class="btn-ghost">📋 Копировать</button>
       </div>
+
       <div class="hint">После публикации может потребоваться подождать 30–60 секунд (кеш GitHub Pages).</div>
     </section>
   </main>
@@ -550,7 +570,6 @@ https://.../holder2.png"></textarea>
 
       const shape = $('#shape').value;
       item.classList.add('shape-' + shape);
-
       item.classList.toggle('fx-shadow', $('#shadowOn').checked);
       item.classList.toggle('fx-3d', $('#fx3d').checked);
       item.classList.toggle('fx-glow', $('#glowOn').checked);
@@ -595,7 +614,6 @@ https://.../holder2.png"></textarea>
         item.style.removeProperty('--cw');
         item.style.removeProperty('--ch');
       }
-
       const pad = Math.max(0, parseInt($('#pad').value||'22', 10));
       item.style.padding = pad + 'px';
     }
@@ -641,6 +659,7 @@ https://.../holder2.png"></textarea>
         if (correct.length === 0){
           throw new Error(`Строка ${i+1}: укажите хотя бы один правильный ответ (через |)`);
         }
+
         let wrong = splitByPipe(wrongRaw);
         if (usePool && wrong.length === 0){
           wrong = allCorrect
@@ -648,6 +667,7 @@ https://.../holder2.png"></textarea>
             .sort(() => Math.random() - 0.5)
             .slice(0, Math.max(3, correct.length + 1));
         }
+
         levels.push({
           target: q,
           correct,
@@ -682,12 +702,14 @@ https://.../holder2.png"></textarea>
           opacity: Math.max(0, Math.min(1, parseFloat($('#opacity').value||'1'))),
           imgBox: Math.max(80, Math.min(260, parseInt($('#imgBox').value||'160',10))),
         },
-        randomLevels: false,
+        randomLevels: $('#randomLevels').checked,
         start: {
           title: ($('#startTitle')?.value || '').trim(),
           btnText: ($('#startBtnText')?.value || '').trim()
         },
-        direction: (['down','up'].includes($('#direction')?.value) ? $('#direction').value : 'down'),
+        direction: (['down','up','random'].includes($('#direction')?.value)
+          ? $('#direction').value
+          : 'down'),
         finalFeedback: $('#finalFeedback').value.trim(),
         globalTimer: Math.max(0, parseInt($('#globalTimer').value || '0', 10)),
         levels
@@ -709,7 +731,7 @@ https://.../holder2.png"></textarea>
     // публикация
     const ENDPOINT    = "https://server-kjnn.onrender.com/publish";
     const PUBLISH_KEY = "nika_read_pub_2025";
-    const _MAIN   = "https://nikashum93.github.io/snow_quiz/main.html"; // поменяешь на свой main.html
+    const _MAIN   = "https://nikashum93.github.io/snow_quiz/main.html";
 
     async function publish(){
       let cfg;
@@ -723,7 +745,6 @@ https://.../holder2.png"></textarea>
       if(err){ alert(err); return; }
 
       applyGoogleFont(cfg.font);
-
       const id = makeIdFromFirstTarget(cfg);
       const payload = {
         id,
@@ -731,6 +752,7 @@ https://.../holder2.png"></textarea>
         folder: "data",
         content: JSON.stringify(cfg, null, 2)
       };
+
       try{
         const res = await fetch(ENDPOINT, {
           method: "POST",
