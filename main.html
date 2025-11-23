@@ -4,42 +4,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Falling Items — Game</title>
-
-   <style>
+  <style>
     :root{
-      /* Цвет интерфейса (HUD/кнопки/акценты) подставим из cfg.style.borderColor */
       --ui: #ffd700;
       --ui-soft: rgba(255,215,0,.14);
-
-      /* Цвет неона для элементов (если включён cfg.style.glow) */
       --glow: #00f0ff;
     }
-
-    /* БАЗА */
     html,body{height:100%}
     body{
       margin:0;
-      background: transparent;          /* ВАЖНО: фон всего фрейма полностью прозрачный */
+      background: transparent;
       color:#fff;
       overflow:hidden;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
-
-    /* Сцена */
     #game{
       position:relative;
       width:100%;
       height:100%;
       overflow:hidden;
-      /* никаких фонов — должна быть прозрачность до границ iframe */
     }
 
-    /* HUD */
-     /* HUD */
+    /* ===== HUD ===== */
     .hud{
-      position:fixed; left:12px; top:12px; right:12px;
-      display:flex; gap:12px; align-items:center; justify-content:space-between;
-      font-weight:700; z-index:10; pointer-events:none;
+      position:fixed;
+      left:12px; top:12px; right:12px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      font-weight:700;
+      z-index:10;
+      pointer-events:none;
+    }
+    .hud-left{
+      display:flex;
+      gap:8px;
+      align-items:center;
     }
     .badge{
       pointer-events:none;
@@ -50,40 +51,38 @@
       box-shadow:0 8px 24px rgba(0,0,0,.35), 0 0 18px var(--ui-soft) inset;
       font-size:16px;
     }
-    .levelTitle{ color:var(--ui); font-size:14px; }
     .timer{min-width:96px; text-align:center}
+    .qnum{min-width:70px; text-align:center; font-size:14px;}
     .score{min-width:96px; text-align:center}
 
     .hud-center{
       flex:1;
       display:flex;
-      flex-direction:column;
       align-items:center;
       justify-content:center;
-      text-align:center;
-      max-width:60%;
-      pointer-events:none;
-      gap:2px;
+      max-width:70%;
+      pointer-events:auto;
     }
-
-    .hudQuestion{
+    .questionBadge{
+      max-width:100%;
+    }
+    .questionBadge .hudQuestion{
       font-weight:500;
       line-height:1.2;
       max-width:100%;
       white-space:normal;
       word-wrap:break-word;
-      max-height:3.6em;         /* до ~3 строк */
+      max-height:4.2em;
       overflow:hidden;
       text-overflow:ellipsis;
       transition:font-size .15s ease, opacity .15s ease;
     }
 
-
-    /* Оверлеи (старт/межуровневый/финал) */
+    /* ===== Оверлеи (старт / финал) ===== */
     .overlay{
       position:fixed; inset:0;
       display:flex; align-items:center; justify-content:center; flex-direction:column;
-      background: none;                /* Никаких затемнений — фрейм прозрачный */
+      background:none;
       color:#fff; z-index:20; gap:18px;
       pointer-events:auto;
     }
@@ -107,10 +106,11 @@
       background:linear-gradient(90deg,#ffbf00,#ffd700);
       color:#000; border:0; border-radius:10px; font-weight:900; padding:12px 16px; cursor:pointer;
       transition:transform .12s ease, box-shadow .12s ease;
+      pointer-events:auto;
     }
     .overlay button:hover{ transform:translateY(-1px); box-shadow:0 10px 24px rgba(255,215,0,.35) }
 
-    /* Падающие элементы */
+    /* ===== Падающие элементы ===== */
     .item{
       position:absolute;
       top:-160px; left:0;
@@ -119,45 +119,43 @@
       display:inline-flex;
       align-items:center; justify-content:center;
       min-width:120px; min-height:80px;
-      padding:0;                          /* Внутренние отступы — в .content */
+      padding:0;
       user-select:none; cursor:pointer;
     }
     .item .bg{
       position:absolute; inset:0;
-      background: transparent;            /* По умолчанию прозрачный слой */
+      background: transparent;
       opacity:1;
-      border:0 solid #fff;                /* Настраивается из cfg.style */
-      box-shadow:none;                    /* Эффекты сюда */
+      border:0 solid #fff;
+      box-shadow:none;
       transition:filter .15s ease;
       background-position:center !important;
       background-repeat:no-repeat !important;
-      background-size: contain !important;/* Картинка-рама масштабируется под бокс */
+      background-size:contain !important;
     }
-  .item .content{
-  position:relative; z-index:1;
-  display:flex; align-items:center; justify-content:center;
-  text-align:center; line-height:1.15;
-  /* размеры для картинок задаём через CSS-переменные */
-  width: var(--cw, auto);
-  height: var(--ch, auto);
-}
+    .item .content{
+      position:relative; z-index:1;
+      display:flex; align-items:center; justify-content:center;
+      text-align:center; line-height:1.15;
+      width: var(--cw, auto);
+      height: var(--ch, auto);
+    }
     .item .content span{
       display:inline-block;
       font-weight:800;
       white-space:nowrap;
     }
-    /* MathJax должен наследовать размер от контейнера */
-.item .content .mjx-container{ font-size: inherit !important; }
-   .item .content img{
-  display:block;
-  width:100%;          /* важно: картинка занимает контент-бокс */
-  height:100%;
-  max-width:none;      /* никаких «рандомных» 180x140 */
-  max-height:none;
-  object-fit:contain;  /* вписать внутрь бокса */
-  pointer-events:none;
-}
-    /* Фигуры — применяются только к .bg (фон-слой), контент не клипается */
+    .item .content .mjx-container{ font-size: inherit !important; }
+    .item .content img{
+      display:block;
+      width:100%;
+      height:100%;
+      max-width:none;
+      max-height:none;
+      object-fit:contain;
+      pointer-events:none;
+    }
+
     .shape-rect    .bg{ border-radius:10px }
     .shape-rounded .bg{ border-radius:20px }
     .shape-circle  .bg{ border-radius:50% }
@@ -169,31 +167,23 @@
         21% 91%, 32% 57%, 2% 35%, 39% 35%
       );
     }
-/* ---------- Ромб/звезда: рамка и эффекты через drop-shadow ---------- */
 
-/* Внутренняя «рамка» для многоугольников (толщина/цвет придут из JS как CSS-переменные) */
-.poly-border { box-shadow: inset 0 0 0 var(--bw, 1px) var(--bc, #fff); }
+    .poly-border { box-shadow: inset 0 0 0 var(--bw, 1px) var(--bc, #fff); }
 
-/* Тень */
-.shape-diamond.fx-shadow .bg,
-.shape-star.fx-shadow .bg{
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));
-  box-shadow: none; /* отключаем обычные тени, иначе их всё равно «съест» clip-path */
-}
+    .shape-diamond.fx-shadow .bg,
+    .shape-star.fx-shadow .bg{
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));
+      box-shadow: none;
+    }
+    .shape-diamond.fx-glow .bg,
+    .shape-star.fx-glow .bg{
+      filter: drop-shadow(0 0 12px var(--glow, #00f0ff));
+    }
+    .shape-diamond.fx-3d .bg,
+    .shape-star.fx-3d .bg{
+      filter: drop-shadow(7px 7px 16px rgba(0,0,0,.55));
+    }
 
-/* Подсветка (glow) */
-.shape-diamond.fx-glow .bg,
-.shape-star.fx-glow .bg{
-  filter: drop-shadow(0 0 12px var(--glow, #00f0ff));
-}
-
-/* 3D (сделаем как чуть смещённую тень) */
-.shape-diamond.fx-3d .bg,
-.shape-star.fx-3d .bg{
-  filter: drop-shadow(7px 7px 16px rgba(0,0,0,.55));
-}
-
-    /* Эффекты */
     .fx-shadow .bg{ box-shadow:0 10px 30px rgba(0,0,0,.55) }
     .fx-3d     .bg{ box-shadow: 7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
@@ -233,7 +223,7 @@
       100%{ transform:translate(-50%,-60px); opacity:0 }
     }
 
-    /* Фейерверк (финал/межуровневый) */
+    /* Фейерверк */
     .firework{
       position:fixed; width:4px; height:4px; border-radius:50%;
       background:#fff; pointer-events:none; z-index:40; animation:fw 900ms ease-out forwards;
@@ -242,20 +232,17 @@
       from{ transform:translate(0,0) scale(1); opacity:1 }
       to  { transform:translate(var(--tx), var(--ty)) scale(0.1); opacity:0 }
     }
-    /* 🔴 красная вспышка при ошибке */
-/* ✅ красный тинт поверх фона (работает и с bgImage, и с bgColor) */
-/* ✅ красный фильтр, не заливает прозрачные участки */
-.tint-red .bg {
-  animation: redTintOnly 550ms ease;
-}
 
-@keyframes redTintOnly {
-  0%   { filter: none; }
-  15%  { filter: hue-rotate(-25deg) saturate(3) brightness(1.2) contrast(1.2); }
-  50%  { filter: hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
-  100% { filter: none; }
-}
-         /* ===== Финальное окно с радужной неоновой рамкой ===== */
+    /* Красный тинт при ошибке */
+    .tint-red .bg { animation: redTintOnly 550ms ease; }
+    @keyframes redTintOnly {
+      0%   { filter: none; }
+      15%  { filter: hue-rotate(-25deg) saturate(3) brightness(1.2) contrast(1.2); }
+      50%  { filter: hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
+      100% { filter: none; }
+    }
+
+    /* Финальное окно */
     .final-card{
       position:relative;
       padding:4px;
@@ -329,10 +316,9 @@
       from{ opacity:0; transform:translateY(10px) scale(.96);}
       to  { opacity:1; transform:translateY(0) scale(1);}
     }
-
   </style>
-    <script>
-    // === Подключение Google Fonts из cfg.font ===
+
+  <script>
     function loadGoogleFont(fontName){
       if(!fontName) return;
       const family = fontName.replace(/ /g, '+');
@@ -344,132 +330,55 @@
   </script>
 </head>
 <body>
-
-  <!-- HUD -->
   <!-- HUD -->
   <div class="hud">
-    <div class="badge timer" id="hudTimer">00:00</div>
-
-    <div class="hud-center">
-      <div class="badge levelTitle" id="hudLevel">Вопрос 1 / 1</div>
-      <div class="hudQuestion" id="hudQuestion"></div>
+    <div class="hud-left">
+      <div class="badge timer" id="hudTimer">00:00</div>
+      <div class="badge qnum" id="hudQNum">1 / 1</div>
     </div>
-
+    <div class="hud-center">
+      <div class="badge questionBadge">
+        <div class="hudQuestion" id="hudQuestion"></div>
+      </div>
+    </div>
     <div class="badge score" id="hudScore">0</div>
   </div>
 
   <!-- Сцена -->
   <div id="game" aria-live="polite"></div>
 
-   <!-- MathJax для формул -->
+  <!-- MathJax -->
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 
   <script>
-    /* ===================== Локализация ===================== */
-   const I18N = {
-  ru:{
-    startTitle:"Игра «Падающие элементы»",
-    startBtn:"Начать", contBtn:"Продолжить", nextBtn:"Следующий уровень",
-    restartBtn:"Играть снова", 
-    catchAll:"Поймай все",
-    level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
-    time:"Время", score:"Счёт",
-    levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
-    hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
-    finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
-  },
-  en:{
-    startTitle:"Falling Items",
-    startBtn:"Start", contBtn:"Continue", nextBtn:"Next level",
-    restartBtn:"Play again",
-    catchAll:"Catch all",
-    level:n=>`Level ${n}`, levelOf:(n,t)=>`Level ${n} of ${t}`,
-    time:"Time", score:"Score",
-    levelComplete:"Level complete!", gameComplete:"Game complete!",
-    hits:"Hits", wrong:"Wrong clicks", missed:"Missed correct", total:"Total",
-    finalFeedbackTitle:"Well done!", defaultFinalFeedback:"Great job!"
-  },
-  fr:{
-    startTitle:"Objets Tombants",
-    startBtn:"Commencer", contBtn:"Continuer", nextBtn:"Niveau suivant",
-    restartBtn:"Rejouer",
-    catchAll:"Attrapez tous",
-    level:n=>`Niveau ${n}`, levelOf:(n,t)=>`Niveau ${n} sur ${t}`,
-    time:"Temps", score:"Score",
-    levelComplete:"Niveau terminé !", gameComplete:"Jeu terminé !",
-    hits:"Touchés", wrong:"Faux clics", missed:"Justes ratés", total:"Total",
-    finalFeedbackTitle:"Bravo !", defaultFinalFeedback:"Excellent travail !"
-  },
-  es:{
-    startTitle:"Elementos Cayendo",
-    startBtn:"Comenzar", contBtn:"Continuar", nextBtn:"Siguiente nivel",
-    restartBtn:"Jugar de nuevo",
-    catchAll:"Atrapa todos",
-    level:n=>`Nivel ${n}`, levelOf:(n,t)=>`Nivel ${n} de ${t}`,
-    time:"Tiempo", score:"Puntuación",
-    levelComplete:"¡Nivel completado!", gameComplete:"¡Juego completado!",
-    hits:"Aciertos", wrong:"Clics erróneos", missed:"Correctos perdidos", total:"Total",
-    finalFeedbackTitle:"¡Bien hecho!", defaultFinalFeedback:"¡Gran trabajo!"
-  },
-  de:{
-    startTitle:"Fallende Elemente",
-    startBtn:"Start", contBtn:"Weiter", nextBtn:"Nächste Stufe",
-    restartBtn:"Nochmals spielen",
-    catchAll:"Fange alle",
-    level:n=>`Level ${n}`, levelOf:(n,t)=>`Level ${n} von ${t}`,
-    time:"Zeit", score:"Punkte",
-    levelComplete:"Level geschafft!", gameComplete:"Spiel beendet!",
-    hits:"Treffer", wrong:"Falsche Klicks", missed:"Verpasste Richtige", total:"Gesamt",
-    finalFeedbackTitle:"Gut gemacht!", defaultFinalFeedback:"Weiter so!"
-  },
-  zh:{
-    startTitle:"下落元素",
-    startBtn:"开始", contBtn:"继续", nextBtn:"下一关",
-    restartBtn:"再玩一次",
-    catchAll:"抓住所有",
-    level:n=>`第 ${n} 关`, levelOf:(n,t)=>`第 ${n}/${t} 关`,
-    time:"时间", score:"分数",
-    levelComplete:"关卡通过！", gameComplete:"游戏完成！",
-    hits:"命中", wrong:"误点", missed:"错过正确", total:"总分",
-    finalFeedbackTitle:"做得好！", defaultFinalFeedback:"继续努力！"
-  },
-  ja:{
-    startTitle:"落下アイテム",
-    startBtn:"スタート", contBtn:"つづける", nextBtn:"次のレベル",
-    restartBtn:"もう一度",
-    catchAll:"全部キャッチ",
-    level:n=>`レベル ${n}`, levelOf:(n,t)=>`${t} 中 ${n} レベル`,
-    time:"時間", score:"スコア",
-    levelComplete:"レベルクリア！", gameComplete:"ゲームクリア！",
-    hits:"ヒット", wrong:"ミスクリック", missed:"見逃した正解", total:"合計",
-    finalFeedbackTitle:"よくできました！", defaultFinalFeedback:"その調子！"
-  },
- math:{
-  startTitle:"Игра «Падающие элементы» (Математика)",
-  startBtn:"Начать", contBtn:"Продолжить", nextBtn:"Следующий уровень",
-  restartBtn:"Играть снова",
-  catchAll:"Поймай все",
-  level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
-  time:"Время", score:"Счёт",
-  levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
-  hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
-  finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
-}
-};
+    /* ===== Локализация ===== */
+    const I18N = {
+      ru:{ startTitle:"Игра «Падающие элементы»", startBtn:"Начать",
+        restartBtn:"Играть снова", catchAll:"Поймай все",
+        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        time:"Время", score:"Счёт",
+        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
+      },
+      math:{ /* как ru */ 
+        startTitle:"Игра «Падающие элементы» (Математика)",
+        startBtn:"Начать", restartBtn:"Играть снова", catchAll:"Поймай все",
+        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        time:"Время", score:"Счёт",
+        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
+      }
+    };
     function t(lang,key,...args){
       const dict = I18N[lang]||I18N.ru; const v = dict[key];
       return (typeof v==="function")?v(...args):(v??key);
     }
-function parseBgList(v){
-  if(!v) return [];
-  if(Array.isArray(v)) return v.filter(Boolean);
-  return String(v).split(/[\n\r,|;]+/).map(s=>s.trim()).filter(Boolean);
-}
-    /* ===================== Утилиты ===================== */
+
     const $ = sel => document.querySelector(sel);
     const rnd = (a,b)=> a + Math.random()*(b-a);
     const clamp = (v,min,max)=> Math.max(min, Math.min(max,v));
-
     function hexToRgb(hex){
       let s = (hex||'').trim();
       if(!s) return {r:255,g:215,b:0};
@@ -479,115 +388,126 @@ function parseBgList(v){
       return {r:(n>>16)&255, g:(n>>8)&255, b:(n)&255};
     }
 
-    /* ===================== Загрузка cfg по id ===================== */
     const params = new URLSearchParams(location.search);
-    const GAME_ID = params.get('id');                           // старая логика сохранена
-    const JSON_BASE = "https://nikashum93.github.io/texts/data/"; // оставляем как было
-
+    const GAME_ID = params.get('id');
+    const JSON_BASE = "https://nikashum93.github.io/texts/data/";
     let cfg = null;
-    let LANG = 'ru'; // по умолчанию
+    let LANG = 'ru';
 
-(async function boot(){
-  if(!GAME_ID){
-    showFatal("No id", "Не передан id в строке запроса.");
-    return;
-  }
-  try{
-    const url = `${JSON_BASE}${encodeURIComponent(GAME_ID)}.json?v=${Date.now()}`;
-    const res = await fetch(url, { cache:'no-store' });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    cfg = await res.json();
-  }catch(e){
-    showFatal("Load error", `Ошибка загрузки настроек: ${e.message}\nПроверь публикацию в texts/data.`);
-    return;
-  }
-
-  // ЯЗЫК — теперь безопасно, cfg уже есть
-  LANG = (cfg.language || 'ru').toLowerCase();
-
-  // ШРИФТ
-  if(cfg.font){
-    loadGoogleFont(cfg.font);
-  }
-
-  // Цвет интерфейса
-  const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
-  document.documentElement.style.setProperty('--ui', uiColor);
-  document.documentElement.style.setProperty('--ui-soft', 'rgba('+Object.values(hexToRgb(uiColor)).join(',') + ',.14)');
-
-  if (cfg.style && cfg.style.glowColor){
-    document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
-  }
-
-  // Кастомный курсор
-  if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
-
-  // ФОНЫ (множественные, включая GIF)
-  setupBackgrounds();
-
-  // HUD + стартовое меню до начала игры
-  updateHUD(1, (cfg.levels||[]).length||0);
-  showStartOverlay();
-})();
-
-// === 🔴 Фоны сцены: выбор случайного из нескольких, поддержка GIF ===
-let bgImgEl = null;
-function setupBackgrounds(){
-  const list = Array.isArray(cfg.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
-  if (!list.length){
-    if (bgImgEl){ bgImgEl.remove(); bgImgEl = null; }
-    return;
-  }
-
-  if (!bgImgEl){
-    bgImgEl = document.createElement('img');
-    Object.assign(bgImgEl.style, {
-      position:'fixed', inset:'0', width:'100%', height:'100%',
-      objectFit:'cover', zIndex:'-1', pointerEvents:'none'
-    });
-    document.body.prepend(bgImgEl);
-  }
-
-  // случайный выбор фона
-  const pick = () => list[Math.floor(Math.random()*list.length)];
-
-  // первый фон при загрузке
-  bgImgEl.src = pick();
-
-  // при каждом запуске уровня — новый фон
-  const _startLevel = startLevel;
-  startLevel = function(){
-    if (bgImgEl && bgImgEl.parentNode){
-      const fresh = bgImgEl.cloneNode(false);
-      fresh.src = pick();
-      bgImgEl.parentNode.replaceChild(fresh, bgImgEl);
-      bgImgEl = fresh;
-    }
-    _startLevel();
-  };
-}
-
-      /* ===================== HUD / Оверлеи ===================== */
-    const hudLevel = $('#hudLevel');
+    /* ===== HUD refs ===== */
     const hudTimer = $('#hudTimer');
+    const hudQNum  = $('#hudQNum');
     const hudScore = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
 
-    function updateHUD(current, total, neededCorrect){
-      const lang = (cfg.language || 'ru').toLowerCase();
-      const isRu = (lang === 'ru' || lang === 'math');
-      const baseLabel = isRu ? 'Вопрос' : 'Question';
-      let extra = '';
-      if (neededCorrect && neededCorrect > 1){
-        extra = isRu ? ` · нужно ${neededCorrect}` : ` · need ${neededCorrect}`;
+    /* ===== Звук (файлы поп-клик-вин должны лежать рядом с HTML) ===== */
+    const popSound   = new Audio("pop.mp3");
+    const wrongSound = new Audio("wrong.mp3");
+    const winSound   = new Audio("win.mp3");
+
+    /* ===== Глобальные статы ===== */
+    let score = 0;
+    let currentLevel = 0;
+    let running = false;
+    let globalTimerHandle = null;
+    let globalTimeLeft = 0;
+    let spawnerHandle = null;
+    let hits = 0;
+    let wrongClicks = 0;
+    let missedCorrect = 0;
+    let streak = 0;
+    let currentQuestion = null;
+    let neededCorrect = 0;
+    let foundCorrect = new Set();
+    let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
+
+    /* ===== ФОНЫ ===== */
+    let bgImgEl = null;
+
+    (async function boot(){
+      if(!GAME_ID){
+        showFatal("No id", "Не передан id в строке запроса.");
+        return;
       }
-      hudLevel.textContent = `${baseLabel} ${current} / ${total}${extra}`;
+      try{
+        const url = `${JSON_BASE}${encodeURIComponent(GAME_ID)}.json?v=${Date.now()}`;
+        const res = await fetch(url, { cache:'no-store' });
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        cfg = await res.json();
+      }catch(e){
+        showFatal("Load error", `Ошибка загрузки настроек: ${e.message}\nПроверь публикацию в texts/data.`);
+        return;
+      }
+
+      LANG = (cfg.language || 'ru').toLowerCase();
+
+      if(cfg.font){
+        loadGoogleFont(cfg.font);
+      }
+      if(cfg.questionFont){
+        loadGoogleFont(cfg.questionFont);
+      }
+
+      const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
+      const rgb = Object.values(hexToRgb(uiColor)).join(',');
+      document.documentElement.style.setProperty('--ui', uiColor);
+      document.documentElement.style.setProperty('--ui-soft', 'rgba('+rgb+',.14)');
+      if (cfg.style && cfg.style.glowColor){
+        document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
+      }
+
+      if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
+
+      setupBackgrounds();
+      updateHUD(1, (cfg.levels||[]).length||0);
+      showStartOverlay();
+    })();
+
+    function setupBackgrounds(){
+      const list = Array.isArray(cfg?.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
+      if (!list.length){
+        if (bgImgEl){ bgImgEl.remove(); bgImgEl = null; }
+        return;
+      }
+      if (!bgImgEl){
+        bgImgEl = document.createElement('img');
+        Object.assign(bgImgEl.style, {
+          position:'fixed', inset:'0', width:'100%', height:'100%',
+          objectFit:'cover', zIndex:'-1', pointerEvents:'none'
+        });
+        document.body.prepend(bgImgEl);
+      }
+      const pick = () => list[Math.floor(Math.random()*list.length)];
+      bgImgEl.src = pick();
+      const _startLevel = startLevel;
+      startLevel = function(){
+        if (bgImgEl && bgImgEl.parentNode){
+          const fresh = bgImgEl.cloneNode(false);
+          fresh.src = pick();
+          bgImgEl.parentNode.replaceChild(fresh, bgImgEl);
+          bgImgEl = fresh;
+        }
+        _startLevel();
+      };
+    }
+
+    /* ===== HUD / Оверлеи ===== */
+    let overlayNode = null;
+
+    function updateHUD(current, total, needed){
+      if (hudQNum){
+        hudQNum.textContent = total ? `${current} / ${total}` : `${current}`;
+      }
+      // вопрос пишем отдельно в setQuestionText
     }
 
     function setQuestionText(text){
       if (!hudQuestion) return;
       const lang = (cfg.language || 'ru').toLowerCase();
       const isMath = (lang === 'math');
+
+      const qFont = cfg.questionFont || cfg.font || 'Rubik';
+      const baseSize = Number(cfg.questionFontSize || 26);
 
       if (isMath && text){
         hudQuestion.textContent = `\\(${text}\\)`;
@@ -597,12 +517,14 @@ function setupBackgrounds(){
       }
 
       const len = (text || '').length;
-      let size = 26;
-      if (len > 110) size = 18;
-      else if (len > 60) size = 22;
+      let size = baseSize;
+      if (!cfg.questionFontSize){ // авто‑уменьшение только если размер не задан явно
+        if (len > 110) size = 18;
+        else if (len > 60) size = 22;
+      }
       hudQuestion.style.fontSize = size + 'px';
+      hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
     }
-
 
     function showFatal(title, message){
       const ov = document.createElement('div');
@@ -615,160 +537,95 @@ function setupBackgrounds(){
       document.body.appendChild(ov);
     }
 
-    let overlayNode = null;
+    function showStartOverlay(){
+      if (overlayNode) overlayNode.remove();
+      overlayNode = document.createElement('div');
+      overlayNode.className = 'overlay';
+      const total = (cfg.levels||[]).length || 0;
+      const targetVal = cfg.levels?.[0]?.target || "";
+      const isMath = (cfg.language || '') === 'math';
+      const targetHtml = targetVal ? (isMath ? `\\(${targetVal}\\)` : targetVal) : "";
 
-function showStartOverlay(){
-  if (overlayNode) overlayNode.remove();
-  overlayNode = document.createElement('div');
-  overlayNode.className = 'overlay';
+      const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
+                     ? cfg.start.title.trim()
+                     : t(LANG,'startTitle');
+      const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
+                     ? cfg.start.btnText.trim()
+                     : t(LANG,'startBtn');
 
-  const total = (cfg.levels||[]).length || 0;
-  const targetVal = cfg.levels.length > 0 ? (cfg.levels[0].target || "") : "";
-  const isMath = (cfg.language || '') === 'math';
-  const targetHtml = targetVal ? (isMath ? `\\(${targetVal}\\)` : targetVal) : "";
+      overlayNode.innerHTML = `
+        <div class="panel">
+          <h2>${title}</h2>
+          <p>${t(LANG,'catchAll')} ${targetHtml}</p>
+          <div class="row" style="margin-top:14px">
+            <button id="btnStart">${btnTxt}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlayNode);
+      if (isMath && targetHtml) {
+        MathJax.typesetPromise([overlayNode]);
+      }
+      $('#btnStart').addEventListener('click', ()=>{
+        overlayNode.remove();
+        startGame();
+      }, { once: true });
+    }
 
-  // ✅ НОВОЕ: даём возможность переопределить заголовок и текст кнопки из конфигурации
-  const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
-                 ? cfg.start.title.trim()
-                 : t(LANG,'startTitle');
-  const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
-                 ? cfg.start.btnText.trim()
-                 : t(LANG,'startBtn');
+    function showGameCompleteOverlay(stats){
+      if (overlayNode) overlayNode.remove();
+      overlayNode = document.createElement('div');
+      overlayNode.className = 'overlay';
+      const custom  = (cfg.finalFeedback || cfg.feedback || "").trim();
+      const fbTitle = t(LANG,'finalFeedbackTitle');
+      const fbText  = t(LANG,'defaultFinalFeedback');
+      const sc = (stats && stats.score != null) ? stats.score : score;
+      const h  = stats?.hits ?? hits;
+      const w  = stats?.wrong ?? wrongClicks;
+      const m  = stats?.missed ?? missedCorrect;
+      overlayNode.innerHTML = `
+        <div class="final-card">
+          <div class="final-glow"></div>
+          <div class="final-inner">
+            <h2 class="final-title">${t(LANG,'gameComplete')}</h2>
+            ${
+              custom
+                ? `<p style="white-space:pre-wrap; margin:0 0 10px">${custom}</p>`
+                : `<p style="margin:6px 0 10px; font-size:18px; color:var(--ui)">${fbTitle}</p>
+                   <p style="white-space:pre-wrap; margin:0 0 4px">${fbText}</p>`
+            }
+            <div class="final-main-score">${sc}</div>
+            <div class="final-stats">
+              <div><span class="label">${t(LANG,'hits')}:</span> <span class="value">${h}</span></div>
+              <div><span class="label">${t(LANG,'wrong')}:</span> <span class="value">${w}</span></div>
+              <div><span class="label">${t(LANG,'missed')}:</span> <span class="value">${m}</span></div>
+            </div>
+            <button id="btnRestart" class="btn-final">${t(LANG,'restartBtn')}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlayNode);
+      $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
+    }
 
-  overlayNode.innerHTML = `
-    <div class="panel">
-      <h2>${title}</h2>
-      <p>${t(LANG,'catchAll')} ${targetHtml}</p>
-      <div class="row" style="margin-top:14px">
-        <button id="btnStart">${btnTxt}</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlayNode);
-
-  if (isMath && targetHtml) {
-    MathJax.typesetPromise([overlayNode]);
-  }
-
-  $('#btnStart').addEventListener('click', ()=>{
-    overlayNode.remove();
-    startGame();
-  }, { once: true });
-}
-
-   function showLevelCompleteOverlay(current, total, onNext){
-  if (overlayNode) overlayNode.remove();
-  overlayNode = document.createElement('div');
-  overlayNode.className = 'overlay';
-  overlayNode.innerHTML = `
-    <div class="panel">
-      <h2>${t(LANG,'levelComplete')}</h2>
-      <p>${t(LANG,'levelOf', current, total)}</p>
-      <div class="row"><button id="btnNext">${t(LANG,'nextBtn')}</button></div>
-    </div>`;
-  document.body.appendChild(overlayNode);
-  $('#btnNext').addEventListener('click', ()=>{
-    overlayNode.remove();
-    onNext && onNext();
-  }, { once:true });
-}
-
-function showGameCompleteOverlay(stats){
-  if (overlayNode) overlayNode.remove();
-  overlayNode = document.createElement('div');
-  overlayNode.className = 'overlay';
-
-  const custom  = (cfg.finalFeedback || cfg.feedback || "").trim();
-  const fbTitle = t(LANG,'finalFeedbackTitle');
-  const fbText  = t(LANG,'defaultFinalFeedback');
-
-  const sc = (stats && stats.score != null) ? stats.score : score;
-  const h  = stats?.hits ?? hits;
-  const w  = stats?.wrong ?? wrongClicks;
-  const m  = stats?.missed ?? missedCorrect;
-
-  overlayNode.innerHTML = `
-    <div class="final-card">
-      <div class="final-glow"></div>
-      <div class="final-inner">
-        <h2 class="final-title">${t(LANG,'gameComplete')}</h2>
-        ${
-          custom
-            ? `<p style="white-space:pre-wrap; margin:0 0 10px">${custom}</p>`
-            : `<p style="margin:6px 0 10px; font-size:18px; color:var(--ui)">${fbTitle}</p>
-               <p style="white-space:pre-wrap; margin:0 0 4px">${fbText}</p>`
-        }
-        <div class="final-main-score">${sc}</div>
-        <div class="final-stats">
-          <div><span class="label">${t(LANG,'hits')}:</span> <span class="value" id="finalHits">${h}</span></div>
-          <div><span class="label">${t(LANG,'wrong')}:</span> <span class="value" id="finalWrong">${w}</span></div>
-          <div><span class="label">${t(LANG,'missed')}:</span> <span class="value" id="finalMissed">${m}</span></div>
-        </div>
-        <button id="btnRestart" class="btn-final">${t(LANG,'restartBtn')}</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlayNode);
-  $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
-}
-
-
-
-     /* ===================== Геймплей ===================== */
-   const popSound   = new Audio("https://nikashum93.github.io/falling/sounds/pop.mp3");
-const wrongSound = new Audio("https://nikashum93.github.io/falling/sounds/wrong.mp3");
-const winSound   = new Audio("https://nikashum93.github.io/falling/sounds/win.mp3");
-
-    let score = 0;
-    let currentLevel = 0;        // номер вопроса
-    let running = false;
-
-    // общий таймер квиза
-    let globalTimerHandle = null;
-    let globalTimeLeft = 0;
-
-    // спавн
-    let spawnerHandle = null;
-
-    // статистика
-    let hits = 0;
-    let wrongClicks = 0;     // «мимо» — по неправильным
-    let missedCorrect = 0;   // упал правильный и ушёл вниз
-    let streak = 0;
-
-    // текущий вопрос
-    let currentQuestion = null;
-    let neededCorrect = 0;
-    let foundCorrect = new Set();
-
-
+    /* ===== Геймплей ===== */
     function computeSpeedParams(S){
       const s = clamp(Number(S||5), 1, 10);
-      // Скорость падения: очень медленно на 1, быстро на 10
-      const vel = 0.65 + (s-1) * (6.2-0.65)/9;   // ~0.65..6.2 px/кадр
-      // Интервал спавна: 1 — редкий спавн, 10 — частый
-      const spawn = 1700 - (s-1) * (1350)/9;     // ~1700ms → ~350ms
-      // База очков: скорость влияет на «цену» одного попадания
-      const basePts = 8 + (s-1) * (50-8)/9;      // ~8..50
+      const vel = 0.65 + (s-1) * (6.2-0.65)/9;
+      const spawn = 1700 - (s-1) * (1350)/9;
+      const basePts = 8 + (s-1) * (50-8)/9;
       return { vel, spawn, basePts: Math.round(basePts) };
     }
-// Перемешивает копию массива
-function shuffleCopy(arr){
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
-    // Инициализируем после загрузки cfg
-    let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
+    function shuffleCopy(arr){
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
 
     function startGame(){
-      // скорость
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-
-      // статистика
       score = 0;
       hits = 0;
       wrongClicks = 0;
@@ -776,13 +633,11 @@ function shuffleCopy(arr){
       streak = 0;
       hudScore.textContent = '0';
 
-      // общий таймер
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
         globalTimerHandle = null;
       }
       globalTimeLeft = Number(cfg?.globalTimer || 0);
-
       if (globalTimeLeft > 0){
         hudTimer.textContent = formatTime(globalTimeLeft);
         globalTimerHandle = setInterval(()=>{
@@ -809,11 +664,9 @@ function shuffleCopy(arr){
         hudTimer.textContent = '∞';
       }
 
-      // случайный порядок вопросов при желании
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
-
       currentLevel = 0;
       running = true;
       startLevel();
@@ -836,406 +689,351 @@ function shuffleCopy(arr){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
 
-
-  function startLevel(){
-    const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
-    currentLevel++;
-
-    if (currentLevel > levels.length){
-      running = false;
-      stopSpawning();
-      clearItems();
-      fireworks();
-      try{ winSound.currentTime=0; winSound.play(); }catch(_){}
-      showGameCompleteOverlay({
-        score,
-        hits,
-        wrong: wrongClicks,
-        missed: missedCorrect
-      });
-      return;
-    }
-
-    currentQuestion = levels[currentLevel - 1] || {};
-    const correctArr = Array.isArray(currentQuestion.correct)
-      ? currentQuestion.correct.filter(Boolean)
-      : [];
-    neededCorrect = correctArr.length;
-    foundCorrect = new Set();
-
-    updateHUD(currentLevel, levels.length, neededCorrect);
-    setQuestionText(currentQuestion.target || '');
-
-    stopSpawning();
-    clearItems();
-
-    // ==== СПАУН БЕЗ ТАЙМЕРА УРОВНЯ ====
-    const correct = correctArr.map(v => ({ val: v, good: true }));
-    const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
-    const pool = [...correct, ...wrong];
-    if (!pool.length) return;
-
-    const gh  = game.clientHeight;
-    const fps = 60;
-    const fallDistPx  = gh + 320;
-    const fallTimeSec = fallDistPx / (SPEED.vel * fps);
-    const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
-    const targetActive = Math.round(3 + sNorm * (10 - 3));
-    const maxActive    = targetActive + 1;
-    let interval = (fallTimeSec / targetActive) * 1000;
-    interval = clamp(interval, 300, 2200);
-
-    function spawnNext(){
-      if (!running) return;
-      const activeNow = document.querySelectorAll('.item').length;
-      if (activeNow >= maxActive){
-        spawnerHandle = setTimeout(spawnNext, 120);
-        return;
-      }
-      const obj = pool[Math.floor(Math.random() * pool.length)];
-      drop(obj);
-      const jitter = interval * (0.9 + Math.random() * 0.2);
-      spawnerHandle = setTimeout(spawnNext, Math.max(120, jitter));
-    }
-
-    spawnNext();
-  }
-
-    /* ===================== Элемент: создание/падение/клик ===================== */
-  function drop(obj){
-  const STYLE = cfg.style || {};
-  const FONT = cfg.font || 'Rubik';
-  const FONT_SIZE = Number(cfg.fontSize || 24);
-  const TEXT_COLOR = cfg.textColor || '#ffffff';
-
-  const el = document.createElement('div');
-  el.className = `item shape-${STYLE.shape || 'rounded'} ${STYLE.shadow?'fx-shadow':''} ${STYLE.fx3d?'fx-3d':''} ${STYLE.glow?'fx-glow':''} ${STYLE.borderOn && STYLE.borderWidth>0 ? 'fx-border' : ''}`;
-  el.dataset.good = obj.good ? '1' : '0';
-     el.dataset.value = obj.val;
-  el.style.setProperty('--glow', STYLE.glowColor || '#00f0ff');
-
-  // структура
-  const bg = document.createElement('div');
-  bg.className = 'bg';
-  const content = document.createElement('div');
-  content.className = 'content';
-
-  // Применяем паддинги из редактора
-  const PAD = Number(STYLE.pad || 22);
-  content.style.padding = PAD + 'px';
-const IMG_BOX = Number(STYLE.imgBox || 160); // фикс-бокс для картинок (квадрат)
-
-  el.appendChild(bg); el.appendChild(content);
-
-   // --- Фон-держатель задания: одна или несколько картинок + запасной цвет ---
-  const bgCol = STYLE.bgColor || 'transparent';
-
-  let bgList = [];
-
-  // 1) style.bgImage — строка с одной или несколькими ссылками через \n, запятую, |, ;
-  if (STYLE.bgImage) {
-    bgList = bgList.concat(
-      String(STYLE.bgImage)
-        .split(/[\n\r,|;]+/)
-        .map(s => s.trim())
-        .filter(Boolean)
-    );
-  }
-
-  // 2) style.bgImages — массив ИЛИ строка, как в редакторе
-  if (STYLE.bgImages) {
-    if (Array.isArray(STYLE.bgImages)) {
-      bgList = bgList.concat(STYLE.bgImages.filter(Boolean));
-    } else {
-      bgList = bgList.concat(
-        String(STYLE.bgImages)
-          .split(/[\n\r,|;]+/)
-          .map(s => s.trim())
-          .filter(Boolean)
-      );
-    }
-  }
-
-  bgList = bgList.filter(Boolean);
-
-  if (!bgList.length) {
-    // нет ни одной картинки → просто цвет
-    bg.style.backgroundImage = 'none';
-    bg.style.backgroundColor = bgCol;
-  } else {
-    // выбираем случайную картинку-держатель
-    const chosenBg = bgList[Math.floor(Math.random() * bgList.length)];
-    bg.style.backgroundImage = `url(${chosenBg})`;
-    bg.style.backgroundColor = 'transparent';
-  }
-
-  // Прозрачность фон-слоя
-  bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
-
-  // Рамка (граница) — только если включена
-// Рамка (граница)
-const shapeKind = (STYLE.shape || 'rounded');
-if (STYLE.borderOn && STYLE.borderWidth > 0){
-  const bw = `${parseInt(STYLE.borderWidth,10)}px`;
-  const bc = STYLE.borderColor || '#fff';
-
-  if (shapeKind === 'diamond' || shapeKind === 'star'){
-    // Для многоугольников делаем внутренний штрих через inset box-shadow,
-    // чтобы clip-path его не «съедал»
-    bg.style.borderWidth = '0px';
-    bg.classList.add('poly-border');
-    bg.style.setProperty('--bw', bw);
-    bg.style.setProperty('--bc', bc);
-  } else {
-    // Для прямоугольных/окружностей обычная рамка ок
-    bg.classList.remove('poly-border');
-    bg.style.removeProperty('--bw');
-    bg.style.removeProperty('--bc');
-    bg.style.borderColor = bc;
-    bg.style.borderWidth = bw;
-  }
-} else {
-  bg.classList.remove('poly-border');
-  bg.style.removeProperty('--bw');
-  bg.style.removeProperty('--bc');
-  bg.style.borderWidth = '0px';
-}
-
-
-  // Контент: картинка/математика/текст
-if (/^https?:\/\//i.test(obj.val)) {
-  const img = document.createElement('img');
-  img.src = obj.val;
-  content.appendChild(img);
-
-  // фиксированная рабочая область под картинку
-  content.style.setProperty('--cw', IMG_BOX + 'px');
-  content.style.setProperty('--ch', IMG_BOX + 'px');
-
-  // сразу задаём общий бокс элемента (рамка/«воздух» + паддинги контента)
-  const shape = (STYLE.shape || 'rounded');
- const hasImageFrame = (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length>0 : !!(STYLE.bgImage && String(STYLE.bgImage).trim())) || (Array.isArray(STYLE.bgImages) && STYLE.bgImages.length>0);
-  const padX = hasImageFrame ? 30 : 22;
-  const padY = hasImageFrame ? 24 : 18;
-
-  let W = IMG_BOX + padX*2 + PAD*2;
-  let H = IMG_BOX + padY*2 + PAD*2;
-
-  if (shape === 'circle' || shape === 'diamond' || shape === 'star') {
-    const S = Math.max(W, H);
-    W = H = S;
-  }
-
-  el.style.width  = W + 'px';
-  el.style.height = H + 'px';
-
-  // на случай поздней загрузки картинки
-  img.onload = () => { el.style.width = W + 'px'; el.style.height = H + 'px'; };
-
-} else if ((cfg.language||'') === 'math'){
-  const span = document.createElement('span');
-  span.textContent = `\\(${obj.val}\\)`;
-  span.style.color = TEXT_COLOR;
-  span.style.fontSize = `${FONT_SIZE}px`;                // <- размер из редактора
-  span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
-  content.appendChild(span);
-
-
-} else {
-  const span = document.createElement('span');
-  span.textContent = String(obj.val);
-  span.style.color = TEXT_COLOR;
-  span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
-  span.style.fontSize = `${FONT_SIZE}px`;
-  content.appendChild(span);
-}
-
-
-  // === Направление движения (НОВОЕ)
-  const DIR = (cfg.direction || 'down'); // down|up|left|right
-
-  // Стартовая позиция (переписана под 4 направления; поведение по умолчанию прежнее)
-  const gw = game.clientWidth;
-  const gh = game.clientHeight;
-  let x, y;
-
-// --- минимальный отступ только по бокам ---
-const MARGIN = 20;
-
-if (DIR === 'down' || DIR === 'up') {
-  // пока предварительно — точную X подожмём позже, уже зная ширину элемента
-  x = rnd(0, gw);
-  y = (DIR === 'down') ? -160 : (gh + 160);
-} else {
-  // горизонтальные направления оставляем как было
-  y = rnd(16, gh - 140);
-  x = (DIR === 'left') ? -220 : (gw + 220);
-}
-  el.style.left = x + 'px';
-  el.style.top  = y + 'px';
-
-  game.appendChild(el);
-
-  // Подгоняем геометрию под контент + воздух
-  fitGeometryBox(el);
-
-  // Автофит текста
-  autoFitText(el, FONT_SIZE, 12);
-
-  // Если математический режим — перетайпсетить и ещё раз подровнять
- if ((cfg.language||'') === 'math'){
-  MathJax.typesetPromise([el]).then(()=>{
-    fitGeometryBox(el);  // после перерасчёта размеров
-    adjustX();           // ещё раз поджимаем X, уже с финальной шириной
-  });
-}
-
-  // Движение (учитываем DIR). Вертикальные колышутся по X, горизонтальные — по Y.
-  const vel = SPEED.vel;
-  const swayAmp = rnd(6, 22);
-  const swayFreq = rnd(0.003, 0.008);
-    // поджимаем X так, чтобы с учётом ширины и качания элемент не мог вылезти за кадр
-function adjustX(){
-  if (!(DIR === 'down' || DIR === 'up')) return; // для вертикального падения
-  const W = el.offsetWidth;              // реальная ширина элемента
-  const safe = swayAmp;                   // запас на покачивание по X
-  const min = MARGIN + safe;
-  const max = Math.max(min, gw - W - MARGIN - safe);
-  x = clamp(x, min, max);
-  el.style.left = x + 'px';
-}
-
-  let t = 0;
-  let alive = true;
-  adjustX();
-  function step(){
-    if(!alive) return;
-    t += 1;
-    if (DIR === 'down'){
-      y += vel;
-      const dx = Math.sin(t*swayFreq) * swayAmp;
-      el.style.top = y+'px';
-      el.style.transform = `translateX(${dx}px)`;
-      if (y > gh + 200){
-        alive = false;
-        if (el.dataset.good === '1') missedCorrect++;
-        el.remove(); return;
-      }
-    } else if (DIR === 'up'){
-      y -= vel;
-      const dx = Math.sin(t*swayFreq) * swayAmp;
-      el.style.top = y+'px';
-      el.style.transform = `translateX(${dx}px)`;
-      if (y < -200){
-        alive = false;
-        if (el.dataset.good === '1') missedCorrect++;
-        el.remove(); return;
-      }
-    } else if (DIR === 'left'){
-      x += vel;
-      const dy = Math.sin(t*swayFreq) * swayAmp;
-      el.style.left = x+'px';
-      el.style.transform = `translateY(${dy}px)`;
-      if (x > gw + 200){
-        alive = false;
-        if (el.dataset.good === '1') missedCorrect++;
-        el.remove(); return;
-      }
-    } else { // right
-      x -= vel;
-      const dy = Math.sin(t*swayFreq) * swayAmp;
-      el.style.left = x+'px';
-      el.style.transform = `translateY(${dy}px)`;
-      if (x < -200){
-        alive = false;
-        if (el.dataset.good === '1') missedCorrect++;
-        el.remove(); return;
-      }
-    }
-    requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-  // 👇 единый обработчик клика по элементу (внутри drop, но вне step)
-  el.addEventListener('click', (ev)=>{
-    if (!running) return;
-    if (!alive) return;
-    ev.stopPropagation();
-    const isGood = el.dataset.good === '1';
-    if (isGood){
-      alive = false;
-      hits++;
-      streak++;
-      const bonus = Math.max(0, streak-1) * 2;
-      const pts = SPEED.basePts + bonus;
-      score += pts;
-      hudScore.textContent = String(score);
-      foundCorrect.add(el.dataset.value);
-      el.classList.add('caught');
-      playPop(el);
-      popScore(el, '+'+pts);
-      setTimeout(()=> el.remove(), 420);
-      if (foundCorrect.size >= neededCorrect){
+    function startLevel(){
+      const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
+      currentLevel++;
+      if (currentLevel > levels.length){
+        running = false;
         stopSpawning();
         clearItems();
-        const totalLevels = (cfg.levels || []).length;
-        if (currentLevel >= totalLevels){
-          fireworks();
-          try{ winSound.currentTime=0; winSound.play(); }catch(_){}
-          showGameCompleteOverlay({
-            score,
-            hits,
-            wrong: wrongClicks,
-            missed: missedCorrect
-          });
+        fireworks();
+        try{ winSound.currentTime=0; winSound.play(); }catch(_){}
+        showGameCompleteOverlay({
+          score,
+          hits,
+          wrong: wrongClicks,
+          missed: missedCorrect
+        });
+        return;
+      }
+
+      const game = document.getElementById('game');
+      currentQuestion = levels[currentLevel - 1] || {};
+      const correctArr = Array.isArray(currentQuestion.correct)
+        ? currentQuestion.correct.filter(Boolean)
+        : [];
+      neededCorrect = correctArr.length;
+      foundCorrect = new Set();
+
+      updateHUD(currentLevel, levels.length, neededCorrect);
+      setQuestionText(currentQuestion.target || currentQuestion.question || '');
+
+      stopSpawning();
+      clearItems();
+
+      const correct = correctArr.map(v => ({ val: v, good: true }));
+      const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
+      const pool = [...correct, ...wrong];
+      if (!pool.length) return;
+
+      const gh  = game.clientHeight;
+      const fps = 60;
+      const fallDistPx  = gh + 320;
+      const fallTimeSec = fallDistPx / (SPEED.vel * fps);
+      const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
+      const targetActive = Math.round(3 + sNorm * (10 - 3));
+      const maxActive    = targetActive + 1;
+      let interval = (fallTimeSec / targetActive) * 1000;
+      interval = clamp(interval, 300, 2200);
+
+      function spawnNext(){
+        if (!running) return;
+        const activeNow = document.querySelectorAll('.item').length;
+        if (activeNow >= maxActive){
+          spawnerHandle = setTimeout(spawnNext, 120);
+          return;
+        }
+        const obj = pool[Math.floor(Math.random() * pool.length)];
+        drop(obj);
+        const jitter = interval * (0.9 + Math.random() * 0.2);
+        spawnerHandle = setTimeout(spawnNext, Math.max(120, jitter));
+      }
+      spawnNext();
+    }
+
+    /* ===== Элемент: создание/падение/клик ===== */
+    function drop(obj){
+      const game = document.getElementById('game');
+      const STYLE = cfg.style || {};
+      const FONT = cfg.font || 'Rubik';
+      const FONT_SIZE = Number(cfg.fontSize || 24);
+      const TEXT_COLOR = cfg.textColor || '#ffffff';
+
+      const el = document.createElement('div');
+      el.className =
+        `item shape-${STYLE.shape || 'rounded'} `+
+        `${STYLE.shadow?'fx-shadow':''} `+
+        `${STYLE.fx3d?'fx-3d':''} `+
+        `${STYLE.glow?'fx-glow':''} `+
+        `${STYLE.borderOn && STYLE.borderWidth>0 ? 'fx-border' : ''}`;
+      el.dataset.good = obj.good ? '1' : '0';
+      el.dataset.value = obj.val;
+      el.style.setProperty('--glow', STYLE.glowColor || '#00f0ff');
+
+      const bg = document.createElement('div');
+      bg.className = 'bg';
+      const content = document.createElement('div');
+      content.className = 'content';
+      const PAD = Number(STYLE.pad || 22);
+      content.style.padding = PAD + 'px';
+      const IMG_BOX = Number(STYLE.imgBox || 160);
+      el.appendChild(bg); el.appendChild(content);
+
+      const bgCol = STYLE.bgColor || 'transparent';
+      let bgList = [];
+      if (STYLE.bgImage){
+        bgList = bgList.concat(
+          String(STYLE.bgImage)
+            .split(/[\n\r,|;]+/)
+            .map(s=>s.trim())
+            .filter(Boolean)
+        );
+      }
+      if (STYLE.bgImages){
+        if (Array.isArray(STYLE.bgImages)){
+          bgList = bgList.concat(STYLE.bgImages.filter(Boolean));
         } else {
-          showLevelCompleteOverlay(currentLevel, totalLevels, startLevel);
+          bgList = bgList.concat(
+            String(STYLE.bgImages)
+              .split(/[\n\r,|;]+/)
+              .map(s=>s.trim())
+              .filter(Boolean)
+          );
         }
       }
-    } else {
-      wrongClicks++;
-      streak = 0;
-      try{ wrongSound.currentTime=0; wrongSound.play(); }catch(_){}
-      el.classList.add('tint-red');
-      setTimeout(()=> el.classList.remove('tint-red'), 400);
+      bgList = bgList.filter(Boolean);
+      if (!bgList.length){
+        bg.style.backgroundImage = 'none';
+        bg.style.backgroundColor = bgCol;
+      } else {
+        const chosenBg = bgList[Math.floor(Math.random() * bgList.length)];
+        bg.style.backgroundImage = `url(${chosenBg})`;
+        bg.style.backgroundColor = 'transparent';
+      }
+      bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
+
+      const shapeKind = (STYLE.shape || 'rounded');
+      if (STYLE.borderOn && STYLE.borderWidth > 0){
+        const bw = `${parseInt(STYLE.borderWidth,10)}px`;
+        const bc = STYLE.borderColor || '#fff';
+        if (shapeKind === 'diamond' || shapeKind === 'star'){
+          bg.style.borderWidth = '0px';
+          bg.classList.add('poly-border');
+          bg.style.setProperty('--bw', bw);
+          bg.style.setProperty('--bc', bc);
+        } else {
+          bg.classList.remove('poly-border');
+          bg.style.removeProperty('--bw');
+          bg.style.removeProperty('--bc');
+          bg.style.borderColor = bc;
+          bg.style.borderWidth = bw;
+        }
+      } else {
+        bg.classList.remove('poly-border');
+        bg.style.removeProperty('--bw');
+        bg.style.removeProperty('--bc');
+        bg.style.borderWidth = '0px';
+      }
+
+      if (/^https?:\/\//i.test(obj.val)) {
+        const img = document.createElement('img');
+        img.src = obj.val;
+        content.appendChild(img);
+        content.style.setProperty('--cw', IMG_BOX + 'px');
+        content.style.setProperty('--ch', IMG_BOX + 'px');
+        const shape = (STYLE.shape || 'rounded');
+        const hasImageFrame =
+          (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length>0 : !!(STYLE.bgImage && String(STYLE.bgImage).trim())) ||
+          (Array.isArray(STYLE.bgImages) && STYLE.bgImages.length>0);
+        const padX = hasImageFrame ? 30 : 22;
+        const padY = hasImageFrame ? 24 : 18;
+        let W = IMG_BOX + padX*2 + PAD*2;
+        let H = IMG_BOX + padY*2 + PAD*2;
+        if (shape === 'circle' || shape === 'diamond' || shape === 'star') {
+          const S = Math.max(W, H);
+          W = H = S;
+        }
+        el.style.width  = W + 'px';
+        el.style.height = H + 'px';
+        img.onload = () => { el.style.width = W + 'px'; el.style.height = H + 'px'; };
+      } else if ((cfg.language||'') === 'math'){
+        const span = document.createElement('span');
+        span.textContent = `\\(${obj.val}\\)`;
+        span.style.color = TEXT_COLOR;
+        span.style.fontSize = `${FONT_SIZE}px`;
+        span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
+        content.appendChild(span);
+      } else {
+        const span = document.createElement('span');
+        span.textContent = String(obj.val);
+        span.style.color = TEXT_COLOR;
+        span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
+        span.style.fontSize = `${FONT_SIZE}px`;
+        content.appendChild(span);
+      }
+
+      const DIR = (cfg.direction || 'down');
+      const gw = game.clientWidth;
+      const gh = game.clientHeight;
+      let x, y;
+      const MARGIN = 20;
+      if (DIR === 'down' || DIR === 'up') {
+        x = rnd(0, gw);
+        y = (DIR === 'down') ? -160 : (gh + 160);
+      } else {
+        y = rnd(16, gh - 140);
+        x = (DIR === 'left') ? -220 : (gw + 220);
+      }
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      game.appendChild(el);
+
+      fitGeometryBox(el);
+      autoFitText(el, FONT_SIZE, 12);
+
+      if ((cfg.language||'') === 'math'){
+        MathJax.typesetPromise([el]).then(()=>{
+          fitGeometryBox(el);
+          adjustX();
+        });
+      }
+
+      const vel = SPEED.vel;
+      const swayAmp = rnd(6, 22);
+      const swayFreq = rnd(0.003, 0.008);
+
+      function adjustX(){
+        if (!(DIR === 'down' || DIR === 'up')) return;
+        const W = el.offsetWidth;
+        const safe = swayAmp;
+        const min = MARGIN + safe;
+        const max = Math.max(min, gw - W - MARGIN - safe);
+        x = clamp(x, min, max);
+        el.style.left = x + 'px';
+      }
+
+      let t = 0;
+      let alive = true;
+      adjustX();
+
+      function step(){
+        if(!alive) return;
+        t += 1;
+        if (DIR === 'down'){
+          y += vel;
+          const dx = Math.sin(t*swayFreq) * swayAmp;
+          el.style.top = y+'px';
+          el.style.transform = `translateX(${dx}px)`;
+          if (y > gh + 200){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else if (DIR === 'up'){
+          y -= vel;
+          const dx = Math.sin(t*swayFreq) * swayAmp;
+          el.style.top = y+'px';
+          el.style.transform = `translateX(${dx}px)`;
+          if (y < -200){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else if (DIR === 'left'){
+          x += vel;
+          const dy = Math.sin(t*swayFreq) * swayAmp;
+          el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
+          if (x > gw + 200){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else { // right
+          x -= vel;
+          const dy = Math.sin(t*swayFreq) * swayAmp;
+          el.style.left = x+'px';
+          if (x < -200){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+
+      el.addEventListener('click', (ev)=>{
+        if (!running) return;
+        if (!alive) return;
+        ev.stopPropagation();
+        const isGood = el.dataset.good === '1';
+        if (isGood){
+          alive = false;
+          hits++;
+          streak++;
+          const bonus = Math.max(0, streak-1) * 2;
+          const pts = SPEED.basePts + bonus;
+          score += pts;
+          hudScore.textContent = String(score);
+          foundCorrect.add(el.dataset.value);
+          el.classList.add('caught');
+          playPop(el);
+          popScore(el, '+'+pts);
+          setTimeout(()=> el.remove(), 420);
+
+          if (foundCorrect.size >= neededCorrect){
+            stopSpawning();
+            clearItems();
+            const totalLevels = (cfg.levels || []).length;
+            if (currentLevel >= totalLevels){
+              fireworks();
+              try{ winSound.currentTime=0; winSound.play().catch(e=>console.warn(e)); }catch(_){}
+              showGameCompleteOverlay({
+                score,
+                hits,
+                wrong: wrongClicks,
+                missed: missedCorrect
+              });
+            } else {
+              // ⚡ авто‑переход к следующему вопросу
+              setTimeout(()=>{ startLevel(); }, 800);
+            }
+          }
+        } else {
+          wrongClicks++;
+          streak = 0;
+          try{
+            wrongSound.currentTime=0;
+            wrongSound.play().catch(e=>console.warn('wrongSound',e));
+          }catch(_){}
+          el.classList.add('tint-red');
+          setTimeout(()=> el.classList.remove('tint-red'), 400);
+        }
+      });
     }
-  });
-} // ← конец функции drop
 
-/* ===================== Геометрия/автофит ===================== */
-      /* ===================== Геометрия/автофит ===================== */
-  function fitGeometryBox(el){
-  const STYLE = cfg.style || {};
-  const content = el.querySelector('.content');
+    /* ===== Геометрия / автофит ===== */
+    function fitGeometryBox(el){
+      const STYLE = cfg.style || {};
+      const content = el.querySelector('.content');
+      if (content && content.style.getPropertyValue('--cw')) return;
+      const shape = STYLE.shape || 'rounded';
 
-  // если для контента задана фикс-ширина через переменную — это картинка,
-  // размеры уже выставлены в drop(), выходим
-  if (content && content.style.getPropertyValue('--cw')) return;
-
-  const shape = STYLE.shape || 'rounded';
-
-
-      // Сбросим, чтобы измерить «натуральный» размер
       el.style.width = ''; el.style.height='';
-
       const r = content.getBoundingClientRect();
-
-      // Воздух зависит от того, есть ли картинка-рамка
- const hasImageFrame =
-  (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length > 0 : !!String(STYLE.bgImage||'').trim()) ||
-  (Array.isArray(STYLE.bgImages) ? STYLE.bgImages.length > 0 : false);
-
+      const hasImageFrame =
+        (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length > 0 : !!String(STYLE.bgImage||'').trim()) ||
+        (Array.isArray(STYLE.bgImages) ? STYLE.bgImages.length > 0 : false);
       const padX = hasImageFrame ? 30 : 22;
       const padY = hasImageFrame ? 24 : 18;
-
       let W = Math.ceil(r.width + padX*2);
       let H = Math.ceil(r.height + padY*2);
 
-      // Круг/ромб/звезда — делаем квадратный бокс, чтобы форма была «геометрическая», не приплюснутая
       if (shape === 'circle' || shape === 'diamond' || shape === 'star'){
         const S = Math.max(W, H);
-        W = H = Math.ceil(S + 16); // чуть воздуха сверху
+        W = H = Math.ceil(S + 16);
       }
-
       el.style.width = W + 'px';
       el.style.height = H + 'px';
     }
@@ -1243,7 +1041,7 @@ function adjustX(){
     function autoFitText(el, startPx, minPx){
       const span = el.querySelector('.content span');
       if(!span) return;
-    let fs = startPx;
+      let fs = startPx;
       const STYLE = cfg.style || {};
       const pad = STYLE.pad ?? 18;
       const maxW = el.clientWidth - pad*2;
@@ -1252,7 +1050,6 @@ function adjustX(){
         const rr = span.getBoundingClientRect();
         return (rr.width <= maxW && rr.height <= maxH);
       };
-
       while (fs > minPx){
         span.style.fontSize = fs + 'px';
         if (fits()) break;
@@ -1260,9 +1057,12 @@ function adjustX(){
       }
     }
 
-    /* ===================== Эффекты / очки / фейерверк ===================== */
+    /* ===== Эффекты ===== */
     function playPop(el){
-      try{ popSound.currentTime = 0; popSound.play(); }catch(_){}
+      try{
+        popSound.currentTime = 0;
+        popSound.play().catch(e=>console.warn('popSound',e));
+      }catch(_){}
       const r = el.getBoundingClientRect();
       for(let i=0;i<14;i++){
         const s = document.createElement('div');
