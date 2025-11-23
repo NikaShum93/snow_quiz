@@ -718,10 +718,10 @@ function showGameCompleteOverlay(stats){
 
 
      /* ===================== Геймплей ===================== */
-    const game = $('#game');
-    const popSound = $('#popSound');
-    const winSound = $('#winSound');
-const wrongSound = $('#wrongSound');
+   const popSound   = new Audio("https://nikashum93.github.io/falling/sounds/pop.mp3");
+const wrongSound = new Audio("https://nikashum93.github.io/falling/sounds/wrong.mp3");
+const winSound   = new Audio("https://nikashum93.github.io/falling/sounds/win.mp3");
+
     let score = 0;
     let currentLevel = 0;        // номер вопроса
     let running = false;
@@ -1158,88 +1158,111 @@ function adjustX(){
         el.remove(); return;
       }
     }
-
+requestAnimationFrame(step);
+}
+requestAnimationFrame(step);
+  let t = 0;
+  let alive = true;
+  adjustX();
+  function step(){
+    if(!alive) return;
+    t += 1;
+    if (DIR === 'down'){
+      y += vel;
+      const dx = Math.sin(t*swayFreq) * swayAmp;
+      el.style.top = y+'px';
+      el.style.transform = `translateX(${dx}px)`;
+      if (y > gh + 200){
+        alive = false;
+        if (el.dataset.good === '1') missedCorrect++;
+        el.remove(); return;
+      }
+    } else if (DIR === 'up'){
+      y -= vel;
+      const dx = Math.sin(t*swayFreq) * swayAmp;
+      el.style.top = y+'px';
+      el.style.transform = `translateX(${dx}px)`;
+      if (y < -200){
+        alive = false;
+        if (el.dataset.good === '1') missedCorrect++;
+        el.remove(); return;
+      }
+    } else if (DIR === 'left'){
+      x += vel;
+      const dy = Math.sin(t*swayFreq) * swayAmp;
+      el.style.left = x+'px';
+      el.style.transform = `translateY(${dy}px)`;
+      if (x > gw + 200){
+        alive = false;
+        if (el.dataset.good === '1') missedCorrect++;
+        el.remove(); return;
+      }
+    } else { // right
+      x -= vel;
+      const dy = Math.sin(t*swayFreq) * swayAmp;
+      el.style.left = x+'px';
+      el.style.transform = `translateY(${dy}px)`;
+      if (x < -200){
+        alive = false;
+        if (el.dataset.good === '1') missedCorrect++;
+        el.remove(); return;
+      }
+    }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
-
   // 👇 единый обработчик клика по элементу (внутри drop, но вне step)
-     /* ===== Финальное окно с радужной неоновой рамкой ===== */
-    .final-card{
-      position:relative;
-      padding:4px;
-      border-radius:20px;
-      overflow:hidden;
-      animation:finalFadeIn .45s ease-out both;
+  el.addEventListener('click', (ev)=>{
+    if (!running) return;
+    if (!alive) return;
+    ev.stopPropagation();
+    const isGood = el.dataset.good === '1';
+    if (isGood){
+      alive = false;
+      hits++;
+      streak++;
+      const bonus = Math.max(0, streak-1) * 2;
+      const pts = SPEED.basePts + bonus;
+      score += pts;
+      hudScore.textContent = String(score);
+      foundCorrect.add(el.dataset.value);
+      el.classList.add('caught');
+      playPop(el);
+      popScore(el, '+'+pts);
+      setTimeout(()=> el.remove(), 420);
+      if (foundCorrect.size >= neededCorrect){
+        stopSpawning();
+        clearItems();
+        const totalLevels = (cfg.levels || []).length;
+        if (currentLevel >= totalLevels){
+          fireworks();
+          try{ winSound.currentTime=0; winSound.play(); }catch(_){}
+          showGameCompleteOverlay({
+            score,
+            hits,
+            wrong: wrongClicks,
+            missed: missedCorrect
+          });
+        } else {
+          showLevelCompleteOverlay(currentLevel, totalLevels, startLevel);
+        }
+      }
+    } else {
+      wrongClicks++;
+      streak = 0;
+      try{ wrongSound.currentTime=0; wrongSound.play(); }catch(_){}
+      el.classList.add('tint-red');
+      setTimeout(()=> el.classList.remove('tint-red'), 400);
     }
-    .final-glow{
-      position:absolute;
-      inset:0;
-      background:conic-gradient(
-        from 0deg,
-        #ff4d6a,#ffb347,#ffe65b,
-        #6bff8a,#5bdcff,#a56bff,#ff4dff,#ff4d6a
-      );
-      animation:glowSpin 5s linear infinite;
-      opacity:.9;
-    }
-    .final-inner{
-      position:relative;
-      border-radius:16px;
-      background:rgba(10,10,25,.96);
-      padding:22px 26px;
-      min-width:min(92vw,360px);
-      color:#fff;
-      text-align:center;
-    }
-    .final-title{
-      font-size:26px;
-      margin:0 0 10px;
-      color:var(--ui);
-      text-shadow:0 0 18px var(--ui-soft);
-    }
-    .final-main-score{
-      font-size:32px;
-      font-weight:800;
-      margin-bottom:12px;
-      text-shadow:0 0 18px rgba(255,255,255,.5);
-    }
-    .final-stats{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:6px 14px;
-      text-align:left;
-      font-size:15px;
-      margin-bottom:18px;
-    }
-    .final-stats .label{opacity:.85}
-    .final-stats .value{font-weight:700}
-    .btn-final{
-      background:linear-gradient(90deg,#ffbf00,#ffd700);
-      color:#000;
-      border:0;
-      border-radius:999px;
-      font-weight:900;
-      padding:10px 20px;
-      cursor:pointer;
-      font-size:16px;
-      box-shadow:0 8px 26px rgba(0,0,0,.45);
-      transition:transform .12s ease, box-shadow .12s ease;
-    }
-    .btn-final:hover{
-      transform:translateY(-1px);
-      box-shadow:0 10px 30px rgba(0,0,0,.6);
-    }
-    @keyframes glowSpin{
-      from{ transform:rotate(0deg); }
-      to  { transform:rotate(360deg); }
-    }
-    @keyframes finalFadeIn{
-      from{ opacity:0; transform:translateY(10px) scale(.96);}
-      to  { opacity:1; transform:translateY(0) scale(1);}
-    }
+  });
+} // ← конец функции drop
 
-    /* ===================== Геометрия/автофит ===================== */
+/* ===================== Геометрия/автофит ===================== */
+function fitGeometryBox(el){
+  ...
+}
+
+      /* ===================== Геометрия/автофит ===================== */
   function fitGeometryBox(el){
   const STYLE = cfg.style || {};
   const content = el.querySelector('.content');
