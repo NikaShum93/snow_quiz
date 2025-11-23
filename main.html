@@ -1,606 +1,1109 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Светлячки</title>
-
-  <!-- MathJax для формул -->
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Falling Items — Game</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
+    :root{
+      --ui: #ffd700;
+      --ui-soft: rgba(255,215,0,.14);
+      --glow: #00f0ff;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
       background: transparent;
+      color:#fff;
+      overflow:hidden;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
-    #bubble-extension {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      pointer-events: auto; overflow: hidden;
-      z-index: 999999;
+    #game{
+      position:relative;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+    }
+    /* ===== HUD ===== */
+    .hud{
+      position:fixed;
+      left:12px; top:12px; right:12px;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:space-between;
+      font-weight:700;
+      z-index:10;
+      pointer-events:none;
+    }
+    .hud-left{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .badge{
+      pointer-events:none;
+      background:rgba(0,0,0,.55);
+      border-radius:999px;
+      padding:8px 16px;
+      box-shadow:0 8px 20px rgba(0,0,0,.55);
+      font-size:16px;
+      min-width:82px;
+      text-align:center;
+    }
+    .timer{min-width:96px;}
+    .qnum{display:none !important;} /* счётчик вопросов скрыт */
+    .score{min-width:80px;}
+
+    .hud-center{
+      flex:1;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      max-width:60%;
+      pointer-events:none;
+    }
+    .questionBadge{
+      pointer-events:none;
+      background:rgba(0,0,0,.65);
+      border-radius:999px;
+      padding:10px 22px;
+      box-shadow:0 14px 32px rgba(0,0,0,.7);
+      max-width:100%;
+    }
+    .questionBadge .hudQuestion{
+      font-weight:600;
+      line-height:1.2;
+      max-width:100%;
+      white-space:normal;
+      word-wrap:break-word;
+      max-height:4.2em;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-align:center;
+      transition:font-size .15s ease, opacity .15s ease;
     }
 
-    /* HUD counter with icon */
-    #counter { display:inline-flex; align-items:center; gap:8px; }
-    #counter .icon {
-      width:26px; height:26px;
-      background-size:contain; background-repeat:no-repeat; background-position:center;
-      border-radius:6px; filter:drop-shadow(0 0 6px rgba(0,0,0,.2));
+    /* ===== Оверлеи (старт / финал) ===== */
+    .overlay{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center; flex-direction:column;
+      background:none;
+      color:#fff; z-index:20; gap:18px;
+      pointer-events:auto;
+    }
+    .overlay .panel{
+      background:rgba(0,0,0,.70);
+      border-radius:22px;
+      padding:26px 30px 22px;
+      text-align:center;
+      box-shadow:0 22px 50px rgba(0,0,0,.85);
+      min-width:min(92vw,520px);
+    }
+    .overlay h2{
+      margin:4px 0 18px;
+      font-size:26px; font-weight:900; color:#ffffff;
+    }
+    .overlay p{ margin:0 0 12px; opacity:.9 }
+    .overlay .row{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap }
+    .overlay button{
+      background:#ffd700;
+      color:#000; border:0; border-radius:999px; font-weight:900; padding:12px 24px; cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease;
+      pointer-events:auto;
+      font-size:16px;
+      box-shadow:0 10px 26px rgba(0,0,0,.7);
+    }
+    .overlay button:hover{ transform:translateY(-1px); box-shadow:0 14px 32px rgba(0,0,0,.8) }
+
+    /* ===== Падающие элементы ===== */
+    .item{
+      position:absolute;
+      top:-200px; left:0;
+      transform:translateZ(0);
+      will-change:transform, top, left, width, height;
+      display:inline-flex;
+      align-items:center; justify-content:center;
+      min-width:120px; min-height:80px;
+      padding:0;
+      user-select:none; cursor:pointer;
+    }
+    .item .bg{
+      position:absolute; inset:0;
+      background: transparent;
+      opacity:1;
+      border:0 solid #fff;
+      box-shadow:none;
+      transition:filter .15s ease;
+      background-position:center !important;
+      background-repeat:no-repeat !important;
+      background-size:contain !important;
+    }
+    .item .content{
+      position:relative; z-index:1;
+      display:flex; align-items:center; justify-content:center;
+      text-align:center; line-height:1.15;
+      width: var(--cw, auto);
+      height: var(--ch, auto);
+    }
+    .item .content span{
+      display:inline-block;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .item .content .mjx-container{ font-size: inherit !important; }
+    .item .content img{
+      display:block;
+      width:100%;
+      height:100%;
+      max-width:none;
+      max-height:none;
+      object-fit:contain;
+      pointer-events:none;
+    }
+    .shape-rect    .bg{ border-radius:10px }
+    .shape-rounded .bg{ border-radius:20px }
+    .shape-circle  .bg{ border-radius:50% }
+    .shape-diamond .bg{ clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) }
+    .shape-star    .bg{
+      clip-path: polygon(
+        50% 0%, 61% 35%, 98% 35%,
+        68% 57%, 79% 91%, 50% 70%,
+        21% 91%, 32% 57%, 2% 35%, 39% 35%
+      );
+    }
+    .poly-border { box-shadow: inset 0 0 0 var(--bw, 1px) var(--bc, #fff); }
+    .shape-diamond.fx-shadow .bg,
+    .shape-star.fx-shadow .bg{
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));
+      box-shadow: none;
+    }
+    .shape-diamond.fx-glow .bg,
+    .shape-star.fx-glow .bg{
+      filter: drop-shadow(0 0 12px var(--glow, #00f0ff));
+    }
+    .shape-diamond.fx-3d .bg,
+    .shape-star.fx-3d .bg{
+      filter: drop-shadow(7px 7px 16px rgba(0,0,0,.55));
+    }
+    .fx-shadow .bg{ box-shadow:0 10px 30px rgba(0,0,0,.55) }
+    .fx-3d     .bg{ box-shadow: 7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
+    .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
+    .fx-border .bg{ border-style:solid }
+
+    /* Поп при ловле (увеличился и схлопнулся) */
+    .caught{
+      animation:pop .55s ease forwards;
+    }
+    @keyframes pop{
+      0%{ transform:scale(1); opacity:1 }
+      35%{ transform:scale(1.35); opacity:1 }
+      100%{ transform:scale(0.1); opacity:0 }
     }
 
-    /* Вспышки от пузырей */
-    @keyframes sparkle {
-      0% { opacity: 0; transform: scale(0.5); }
-      50% { opacity: 1; transform: scale(1.2); }
-      100% { opacity: 0; transform: scale(0.5); }
+    /* Блёстки */
+    .sparkle{
+      position:absolute; width:6px; height:6px; border-radius:50%;
+      background:rgba(255,255,255,.9); pointer-events:none;
+      animation:spark 0.9s forwards;
+      filter:drop-shadow(0 0 6px #fff); z-index:5;
+    }
+    @keyframes spark{
+      from{ opacity:1; transform:translate(0,0) scale(1) }
+      to  { opacity:0; transform:translate(var(--dx), var(--dy)) scale(.2) }
     }
 
-    .bit{
-      position:absolute; width:6px; height:6px; pointer-events:none; z-index:350;
-      background:radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,.7) 40%, rgba(255,255,255,0) 70%);
-      border-radius:50%; box-shadow:0 0 6px rgba(255,255,255,.45);
-      animation:scatter .7s ease-out forwards;
+    /* Всплывающие очки */
+    .score-float{
+      position:fixed; z-index:30;
+      font-weight:900;
+      text-shadow: 0 0 10px rgba(0,0,0,.8);
+      animation:floatUp .85s ease-out forwards;
+      pointer-events:none;
     }
-    @keyframes scatter{
-      from{opacity:1; transform:translate(0,0) scale(1)}
-      to  {opacity:0; transform:translate(var(--tx),var(--ty)) scale(.4)}
-    }
-
-    /* Конфетти старое (можно использовать дополнительно) */
-    @keyframes confetti {
-      0% { opacity: 0; transform: scale(0.7) rotate(-10deg); }
-      50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
-      100% { opacity: 0; transform: scale(0.7) rotate(-10deg); }
+    @keyframes floatUp{
+      0%  { transform:translate(-50%,-10px); opacity:0 }
+      10% { opacity:1; }
+      100%{ transform:translate(-50%,-60px); opacity:0 }
     }
 
-    /* Вылет фидбека */
-    @keyframes popUp {
-      0% { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
-      60% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    /* Фейерверк */
+    .firework{
+      position:fixed; width:4px; height:4px; border-radius:50%;
+      background:#fff; pointer-events:none; z-index:40; animation:fw 900ms ease-out forwards;
+    }
+    @keyframes fw{
+      from{ transform:translate(0,0) scale(1); opacity:1 }
+      to  { transform:translate(var(--tx), var(--ty)) scale(0.1); opacity:0 }
     }
 
-    /* Разлет блёсток от сундука */
-    @keyframes sparkFly {
-      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
-      100% {
-        opacity: 0;
-        transform: translate(
-          calc(-50% + (var(--dx))),
-          calc(-50% + (var(--dy)))
-        ) scale(0.4);
-      }
+    /* Красный тинт при ошибке */
+    .tint-red .bg { animation: redTintOnly 550ms ease; }
+    @keyframes redTintOnly {
+      0%   { filter: none; }
+      15%  { filter: hue-rotate(-25deg) saturate(3) brightness(1.2) contrast(1.2); }
+      50%  { filter: hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
+      100% { filter: none; }
+    }
+    /* Подёргивание при ошибке (по bg, не по всей фигуре) */
+    .bg.shake{
+      animation:shakeX .35s ease;
+    }
+    @keyframes shakeX{
+      0%,100%{ transform:translateX(0); }
+      25%{ transform:translateX(-4px); }
+      50%{ transform:translateX(4px); }
+      75%{ transform:translateX(-3px); }
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    /* Финальное окно — тоже тёмная «таблетка» */
+    .final-card{
+      position:relative;
+      padding:4px;
+      border-radius:24px;
+      overflow:hidden;
+      animation:finalFadeIn .45s ease-out both;
+    }
+    .final-inner{
+      position:relative;
+      border-radius:20px;
+      background:rgba(0,0,0,.80);
+      padding:22px 26px;
+      min-width:min(92vw,360px);
+      color:#fff;
+      text-align:center;
+      box-shadow:0 22px 50px rgba(0,0,0,.85);
+    }
+    .final-title{
+      font-size:24px;
+      margin:0 0 10px;
+      color:#ffffff;
+    }
+    .final-main-score{
+      font-size:32px;
+      font-weight:800;
+      margin-bottom:12px;
+      text-shadow:0 0 18px rgba(0,0,0,.8);
+    }
+    .final-stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px 14px;
+      text-align:left;
+      font-size:15px;
+      margin-bottom:18px;
+    }
+    .final-stats .label{opacity:.85}
+    .final-stats .value{font-weight:700}
+    .btn-final{
+      background:#ffd700;
+      color:#000;
+      border:0;
+      border-radius:999px;
+      font-weight:900;
+      padding:10px 20px;
+      cursor:pointer;
+      font-size:16px;
+      box-shadow:0 8px 26px rgba(0,0,0,.7);
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .btn-final:hover{
+      transform:translateY(-1px);
+      box-shadow:0 10px 30px rgba(0,0,0,.85);
+    }
+    @keyframes finalFadeIn{
+      from{ opacity:0; transform:translateY(10px) scale(.96);}
+      to  { opacity:1; transform:translateY(0) scale(1);}
     }
   </style>
+  <script>
+    function loadGoogleFont(fontName){
+      if(!fontName) return;
+      const family = fontName.replace(/ /g, '+');
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${family}:wght@400;700&display=swap`;
+      document.head.appendChild(link);
+    }
+  </script>
 </head>
 <body>
-  <div id="bubble-extension"></div>
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-left">
+      <div class="badge timer" id="hudTimer">00:00</div>
+      <div class="badge qnum" id="hudQNum">1 / 1</div>
+    </div>
+    <div class="hud-center">
+      <div class="questionBadge">
+        <div class="hudQuestion" id="hudQuestion"></div>
+      </div>
+    </div>
+    <div class="badge score" id="hudScore">0</div>
+  </div>
 
+  <!-- Сцена -->
+  <div id="game" aria-live="polite"></div>
+
+  <!-- MathJax -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script>
-(function(){
-  const root = document.getElementById('bubble-extension');
-  const urlParams = new URLSearchParams(window.location.search);
-
-  // Где лежат JSON от редактора
-  const JSON_BASE = "https://nikashum93.github.io/texts/data/";
-  const cfgId = urlParams.get('id');
-
-  // Конфиг из редактора
-  let feedbackImage = "";
-  let sounds = {
-    pop:  "https://nikashum93.github.io/utki/pop.mp3",
-    open: "https://nikashum93.github.io/utki/open.mp3"
-  };
-  let styleTask = null;
-  let styleFeedback = null;
-
-  // то, что можно переопределять через URL (для совместимости)
-  let finalText = decodeURIComponent(urlParams.get('final') || "🎉 Well Done!");
-  let bubbleImg = decodeURIComponent(urlParams.get('img')   || "https://media.tenor.com/_-Y9OYD_cWwAAAAi/duck-bwong.gif");
-
-  function setCounterIcon(url){
-    try{
-      const el = document.querySelector('#counter .icon');
-      if (el) el.style.backgroundImage = url ? `url(${url})` : 'none';
-    }catch(_){}
-  }
-
-  const isCustomImg = !!urlParams.get('img');
-
-  // Задачи (старый формат через URL тоже подхватываем)
-  const TASKS = {};
-  for (let [key, value] of urlParams.entries()) {
-    if (key.startsWith('task')) {
-      const id = parseInt(key.replace('task', ''));
-      TASKS[id] = decodeURIComponent(value);
-    }
-  }
-
-  // Состояния
-  let total = 0;
-  let popped = 0;
-  let finalUnlocked = false;
-  const bubbles = [];
-  const BUBBLE_SIZE = 80;
-
-  // HUD-счётчик
-  const counter = document.createElement('div');
-  counter.id = 'counter';
-  const counterIcon = document.createElement('span'); counterIcon.className='icon';
-  const counterTxt  = document.createElement('span'); counterTxt.className='txt';
-  counter.appendChild(counterIcon);
-  counter.appendChild(counterTxt);
-  Object.assign(counter.style, {
-    position: 'absolute',
-    top: '20px',
-    left: '20px',
-    background: 'linear-gradient(135deg, #f6f9fc, #dff9fb)',
-    padding: '10px 16px',
-    borderRadius: '12px',
-    fontFamily: 'sans-serif',
-    fontSize: '18px',
-    color: '#2d3436',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    zIndex: 300,
-    pointerEvents: 'none'
-  });
-  root.appendChild(counter);
-
-  function refreshCounter(){
-    total = Object.keys(TASKS).length;
-    setCounterIcon(bubbleImg);
-    counterTxt.innerHTML = `<strong>${popped} / ${total}</strong>`;
-  }
-
-  // Инициализация: тянем JSON, если есть id
-  (async function init(){
-    if (cfgId){
-      try{
-        const res = await fetch(`${JSON_BASE}${encodeURIComponent(cfgId)}.json?v=${Date.now()}`, { cache:'no-store' });
-        const cfg = await res.json();
-
-        // Картинка светлячков
-        if (cfg?.style?.bgImage) bubbleImg = cfg.style.bgImage;
-
-        // Итоговый текст
-        if (typeof cfg?.finalFeedback === 'string') finalText = cfg.finalFeedback;
-
-        // Картинка фидбека (сундук / что угодно)
-        if (cfg?.feedbackImage) feedbackImage = cfg.feedbackImage;
-
-        // Звуки из редактора
-        if (cfg?.sounds?.pop)  sounds.pop  = cfg.sounds.pop;
-        if (cfg?.sounds?.open) sounds.open = cfg.sounds.open;
-
-        // Стили задания / фидбека
-        if (cfg?.style?.task)     styleTask     = cfg.style.task;
-        if (cfg?.style?.feedback) styleFeedback = cfg.style.feedback;
-
-        // Задачи из редактора: tasks: [{ prompt: "..." }]
-        if (cfg?.tasks && cfg.tasks.length){
-          Object.keys(TASKS).forEach(k => delete TASKS[k]);
-          cfg.tasks.forEach((t, i) => {
-            const line = (t && (t.prompt ?? t.q ?? t.text) || "").trim();
-            if (line) TASKS[i + 1] = line;
-          });
-        }
-      }catch(e){
-        console.warn("JSON load failed", e);
+    /* ===== Локализация ===== */
+    const I18N = {
+      ru:{ startTitle:"Игра «Падающие элементы»", startBtn:"Начать",
+        restartBtn:"Играть снова", catchAll:"Поймай все",
+        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        time:"Время", score:"Счёт",
+        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
+      },
+      math:{
+        startTitle:"Игра «Падающие элементы» (Математика)",
+        startBtn:"Начать", restartBtn:"Играть снова", catchAll:"Поймай все",
+        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        time:"Время", score:"Счёт",
+        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
       }
-    }
-
-    refreshCounter();
-    spawnAll();
-    animate();
-    window.addEventListener('resize', keepInsideOnResize);
-  })();
-
-  function getRootSize() {
-    return {
-      width:  root.clientWidth  || window.innerWidth,
-      height: root.clientHeight || window.innerHeight
     };
-  }
-
-  function keepInsideOnResize(){
-    const { width: W, height: H } = getRootSize();
-    for (const b of bubbles) {
-      if (!b.el.parentNode) continue;
-      let x = parseFloat(b.el.style.left) || 0;
-      let y = parseFloat(b.el.style.top)  || 0;
-      if (x > W - BUBBLE_SIZE) b.el.style.left = (W - BUBBLE_SIZE) + 'px';
-      if (y > H - BUBBLE_SIZE) b.el.style.top  = (H - BUBBLE_SIZE) + 'px';
+    function t(lang,key,...args){
+      const dict = I18N[lang]||I18N.ru; const v = dict[key];
+      return (typeof v==="function")?v(...args):(v??key);
     }
-  }
+    const $ = sel => document.querySelector(sel);
+    const rnd = (a,b)=> a + Math.random()*(b-a);
+    const clamp = (v,min,max)=> Math.max(min, Math.min(max,v));
+    function hexToRgb(hex){
+      let s = (hex||'').trim();
+      if(!s) return {r:255,g:215,b:0};
+      if(s[0]==='#') s=s.slice(1);
+      if(s.length===3) s=s.split('').map(c=>c+c).join('');
+      const n=parseInt(s,16);
+      return {r:(n>>16)&255, g:(n>>8)&255, b:(n)&255};
+    }
 
-  function spawnAll(){
-    const { width: maxW, height: maxH } = getRootSize();
-    const totalLocal = Object.keys(TASKS).length;
+    const params = new URLSearchParams(location.search);
+    const GAME_ID = params.get('id');
+    const JSON_BASE = "https://nikashum93.github.io/texts/data/";
+    let cfg = null;
+    let LANG = 'ru';
 
-    for (let i = 1; i <= totalLocal; i++) {
-      const el = document.createElement('img');
-      el.src = bubbleImg;
-      el.style.opacity = isCustomImg ? '1' : '1';
-      Object.assign(el.style, {
-        position: 'absolute',
-        width: BUBBLE_SIZE + 'px',
-        height: 'auto',
-        objectFit: 'contain',
-        pointerEvents: 'auto',
-        cursor: 'pointer',
-        zIndex: 100,
-        transition: 'transform 0.2s ease'
-      });
+    /* ===== HUD refs ===== */
+    const hudTimer = $('#hudTimer');
+    const hudQNum  = $('#hudQNum');
+    const hudScore = $('#hudScore');
+    const hudQuestion = $('#hudQuestion');
 
-      el.style.left = (Math.random() * (maxW - BUBBLE_SIZE)) + 'px';
-      el.style.top  = (Math.random() * (maxH - BUBBLE_SIZE)) + 'px';
+    /* ===== Звук ===== */
+    const popSound   = new Audio("pop.mp3");
+    const wrongSound = new Audio("wrong.mp3");
+    const winSound   = new Audio("win.mp3");
 
-      const dx = (Math.random()*2 - 1) * 1.5;
-      const dy = (Math.random()*2 - 1) * 1.5;
-      const bubble = { el, dx, dy, id: i };
-      bubbles.push(bubble);
+    /* ===== Глобальные статы ===== */
+    let score = 0;
+    let currentLevel = 0;
+    let running = false;
+    let globalTimerHandle = null;
+    let globalTimeLeft = 0;
+    let spawnerHandle = null;
+    let hits = 0;
+    let wrongClicks = 0;
+    let missedCorrect = 0;
+    let streak = 0;
+    let currentQuestion = null;
+    let neededCorrect = 0;
+    let foundCorrect = new Set();
+    let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
 
-      el.addEventListener('click', () => {
-        const pop = new Audio(sounds.pop);
-        try { pop.currentTime = 0; pop.play(); } catch(_) {}
+    /* ===== ФОНЫ ===== */
+    let bgImgEl = null;
 
-        el.remove();
-        showMessage(i);
-        popped++;
-        refreshCounter();
+    (async function boot(){
+      if(!GAME_ID){
+        showFatal("No id", "Не передан id в строке запроса.");
+        return;
+      }
+      try{
+        const url = `${JSON_BASE}${encodeURIComponent(GAME_ID)}.json?v=${Date.now()}`;
+        const res = await fetch(url, { cache:'no-store' });
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        cfg = await res.json();
+      }catch(e){
+        showFatal("Load error", `Ошибка загрузки настроек: ${e.message}\nПроверь публикацию в texts/data.`);
+        return;
+      }
+      LANG = (cfg.language || 'ru').toLowerCase();
+      if(cfg.font)       loadGoogleFont(cfg.font);
+      if(cfg.questionFont) loadGoogleFont(cfg.questionFont);
 
-        // мини-вспышка
-        const sparkle = document.createElement('div');
-        sparkle.textContent = '✨';
-        Object.assign(sparkle.style, {
-          position: 'absolute',
-          left: el.style.left,
-          top: el.style.top,
-          fontSize: '18px',
-          zIndex: 150,
-          pointerEvents: 'none',
-          animation: 'sparkle 0.6s ease-out forwards'
+      const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
+      const rgb = Object.values(hexToRgb(uiColor)).join(',');
+      document.documentElement.style.setProperty('--ui', uiColor);
+      document.documentElement.style.setProperty('--ui-soft', 'rgba('+rgb+',.14)');
+      if (cfg.style && cfg.style.glowColor){
+        document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
+      }
+      if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
+
+      setupBackgrounds();
+      updateHUD(1, (cfg.levels||[]).length||0);
+      showStartOverlay();
+    })();
+
+    function setupBackgrounds(){
+      const list = Array.isArray(cfg?.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
+      if (!list.length){
+        if (bgImgEl){ bgImgEl.remove(); bgImgEl = null; }
+        return;
+      }
+      if (!bgImgEl){
+        bgImgEl = document.createElement('img');
+        Object.assign(bgImgEl.style, {
+          position:'fixed', inset:'0', width:'100%', height:'100%',
+          objectFit:'cover', zIndex:'-1', pointerEvents:'none'
         });
-        root.appendChild(sparkle);
-        setTimeout(() => sparkle.remove(), 600);
-      });
-
-      el.addEventListener('mouseenter', () => {
-        bubble.dx *= 0.2;
-        bubble.dy *= 0.2;
-      });
-      el.addEventListener('mouseleave', () => {
-        bubble.dx *= 5;
-        bubble.dy *= 5;
-      });
-
-      root.appendChild(el);
-    }
-  }
-
-  function animate() {
-    const { width: W, height: H } = getRootSize();
-    for (const b of bubbles) {
-      if (!b.el.parentNode) continue;
-      let x = parseFloat(b.el.style.left) || 0;
-      let y = parseFloat(b.el.style.top)  || 0;
-
-      x += b.dx;
-      y += b.dy;
-
-      // Отскоки
-      if (x < 0) { x = 0; b.dx = -b.dx + (Math.random() - 0.5) * 0.4; }
-      if (x > W - BUBBLE_SIZE) { x = W - BUBBLE_SIZE; b.dx = -b.dx + (Math.random() - 0.5) * 0.4; }
-      if (y < 0) { y = 0; b.dy = -b.dy + (Math.random() - 0.5) * 0.4; }
-      if (y > H - BUBBLE_SIZE) { y = H - BUBBLE_SIZE; b.dy = -b.dy + (Math.random() - 0.5) * 0.4; }
-
-      // Чтобы не залипали
-      if (Math.abs(b.dx) < 0.3) b.dx += (Math.random() - 0.5) * 0.5;
-      if (Math.abs(b.dy) < 0.3) b.dy += (Math.random() - 0.5) * 0.5;
-
-      b.dx = Math.max(-1.5, Math.min(1.5, b.dx));
-      b.dy = Math.max(-1.5, Math.min(1.5, b.dy));
-
-      b.el.style.left = x + 'px';
-      b.el.style.top  = y + 'px';
-    }
-    requestAnimationFrame(animate);
-  }
-
-  function shuffle(arr){
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  // ----------------------
-  // ОКНО ЗАДАНИЯ
-  // Формат строки:
-  // 1) "просто текст" → просто показали, закрыли по клику
-  // 2) "вопрос :: ответ" → режим "вписать ответ"
-  // 3) "вопрос :: вариант1 :: вариант2 :: ..." → квиз, первый вариант = правильный
-  // ----------------------
-  function showMessage(id) {
-    const raw = TASKS[id] || "";
-    const parts = raw.split("::");
-    const question = (parts[0] || raw).trim();
-    const options = parts.slice(1).map(s => s.trim()).filter(Boolean);
-
-    const msg = document.createElement('div');
-    Object.assign(msg.style, {
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      background: 'linear-gradient(135deg, #4facfe, #00f2fe)',
-      color: 'white',
-      padding: '24px 36px',
-      borderRadius: '20px',
-      fontSize: '22px',
-      fontFamily: 'sans-serif',
-      textAlign: 'center',
-      boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
-      pointerEvents: 'auto',
-      zIndex: 200,
-      maxWidth: '70vw'
-    });
-
-    // применяем стили задания из редактора
-    if (styleTask){
-      if (styleTask.bgColor) {
-        msg.style.background = styleTask.bgColor;
+        document.body.prepend(bgImgEl);
       }
-      if (styleTask.borderColor) {
-        msg.style.border = '2px solid ' + styleTask.borderColor;
-      }
-      if (typeof styleTask.opacity === 'number') {
-        msg.style.opacity = styleTask.opacity;
-      }
-      if (styleTask.fontSize) {
-        msg.style.fontSize = styleTask.fontSize + 'px';
-      }
-      if (styleTask.neon) {
-        const glow = styleTask.borderColor || '#ffffff';
-        msg.style.boxShadow = `0 0 18px ${glow}`;
-      }
-    }
-
-    // Вопрос
-    const q = document.createElement('div');
-    q.className = 'task-question';
-    q.innerHTML = question || `<b>Task ${id}</b>`;
-    q.style.marginBottom = '16px';
-    msg.appendChild(q);
-
-    if (options.length === 0) {
-      // просто текст → закрываем по клику
-      msg.style.cursor = 'pointer';
-      msg.addEventListener('click', () => {
-        msg.remove();
-        if (popped === total && !finalUnlocked) {
-          finalUnlocked = true;
-          showFinal();
+      const pick = () => list[Math.floor(Math.random()*list.length)];
+      bgImgEl.src = pick();
+      const _startLevel = startLevel;
+      startLevel = function(){
+        if (bgImgEl && bgImgEl.parentNode){
+          const fresh = bgImgEl.cloneNode(false);
+          fresh.src = pick();
+          bgImgEl.parentNode.replaceChild(fresh, bgImgEl);
+          bgImgEl = fresh;
         }
-      });
-    } else if (options.length === 1) {
-      // 📝 ВПИСАТЬ ОТВЕТ
-      const correct = options[0].toLowerCase();
+        _startLevel();
+      };
+    }
 
-      const input = document.createElement('input');
-      Object.assign(input.style, {
-        width: '100%',
-        padding: '8px 10px',
-        borderRadius: '10px',
-        border: 'none',
-        marginBottom: '10px',
-        fontSize: '18px',
-        color: '#2d3436'
-      });
-      input.placeholder = 'Впиши ответ...';
-      msg.appendChild(input);
+    /* ===== HUD / Оверлеи ===== */
+    function updateHUD(current, total){
+      if (hudQNum){
+        hudQNum.textContent = total ? `${current} / ${total}` : `${current}`;
+      }
+    }
+    function setQuestionText(text){
+      if (!hudQuestion) return;
+      const lang = (cfg.language || 'ru').toLowerCase();
+      const isMath = (lang === 'math');
+      const qFont = cfg.questionFont || cfg.font || 'Rubik';
+      const baseSize = Number(cfg.questionFontSize || 26);
 
-      const btn = document.createElement('button');
-      btn.textContent = 'OK';
-      Object.assign(btn.style, {
-        padding: '8px 18px',
-        borderRadius: '999px',
-        border: 'none',
-        fontSize: '16px',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        background: '#fff',
-        color: '#0984e3',
-        marginBottom: '8px'
-      });
-      msg.appendChild(btn);
+      if (isMath && text){
+        hudQuestion.textContent = `\\(${text}\\)`;
+        MathJax.typesetPromise([hudQuestion]);
+      } else {
+        hudQuestion.textContent = text || '';
+      }
 
-      const fb = document.createElement('div');
-      fb.style.minHeight = '24px';
-      msg.appendChild(fb);
+      const len = (text || '').length;
+      let size = baseSize;
+      if (!cfg.questionFontSize){
+        if (len > 110) size = 18;
+        else if (len > 60) size = 22;
+      }
+      hudQuestion.style.fontSize = size + 'px';
+      hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
+    }
 
-      function checkAnswer() {
-        const value = (input.value || '').trim().toLowerCase();
-        if (!value) return;
-        if (value === correct) {
-          fb.textContent = '✅ Correct!';
-          setTimeout(() => {
-            msg.remove();
-            if (popped === total && !finalUnlocked) {
-              finalUnlocked = true;
-              showFinal();
+    function showFatal(title, message){
+      const ov = document.createElement('div');
+      ov.className = 'overlay';
+      ov.innerHTML = `
+        <div class="panel">
+          <h2>${title}</h2>
+          <p style="white-space:pre-wrap">${message}</p>
+        </div>`;
+      document.body.appendChild(ov);
+    }
+
+    function showStartOverlay(){
+      if (overlayNode) overlayNode.remove();
+      overlayNode = document.createElement('div');
+      overlayNode.className = 'overlay';
+      const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
+                     ? cfg.start.title.trim()
+                     : t(LANG,'startTitle');
+      const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
+                     ? cfg.start.btnText.trim()
+                     : t(LANG,'startBtn');
+      overlayNode.innerHTML = `
+        <div class="panel">
+          <h2>${title}</h2>
+          <div class="row" style="margin-top:6px">
+            <button id="btnStart">${btnTxt}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlayNode);
+      $('#btnStart').addEventListener('click', ()=>{
+        overlayNode.remove();
+        startGame();
+      }, { once: true });
+    }
+
+    let overlayNode = null;
+    function showGameCompleteOverlay(stats){
+      if (overlayNode) overlayNode.remove();
+      overlayNode = document.createElement('div');
+      overlayNode.className = 'overlay';
+      const custom  = (cfg.finalFeedback || cfg.feedback || "").trim();
+      const fbTitle = t(LANG,'finalFeedbackTitle');
+      const fbText  = t(LANG,'defaultFinalFeedback');
+      const sc = (stats && stats.score != null) ? stats.score : score;
+      const h  = stats?.hits ?? hits;
+      const w  = stats?.wrong ?? wrongClicks;
+      const m  = stats?.missed ?? missedCorrect;
+      overlayNode.innerHTML = `
+        <div class="final-card">
+          <div class="final-inner">
+            <h2 class="final-title">${t(LANG,'gameComplete')}</h2>
+            ${
+              custom
+                ? `<p style="white-space:pre-wrap; margin:0 0 10px">${custom}</p>`
+                : `<p style="margin:6px 0 10px; font-size:18px;">${fbTitle}</p>
+                   <p style="white-space:pre-wrap; margin:0 0 4px">${fbText}</p>`
             }
-          }, 500);
-        } else {
-          fb.textContent = '❌ Try again';
-        }
+            <div class="final-main-score">${sc}</div>
+            <div class="final-stats">
+              <div><span class="label">${t(LANG,'hits')}:</span> <span class="value">${h}</span></div>
+              <div><span class="label">${t(LANG,'wrong')}:</span> <span class="value">${w}</span></div>
+              <div><span class="label">${t(LANG,'missed')}:</span> <span class="value">${m}</span></div>
+            </div>
+            <button id="btnRestart" class="btn-final">${t(LANG,'restartBtn')}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlayNode);
+      $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
+    }
+
+    /* ===== Геймплей ===== */
+    function computeSpeedParams(S){
+      const s = clamp(Number(S||5), 1, 10);
+      const vel = 0.75 + (s-1) * (6.0-0.75)/9;
+      const basePts = 10 + (s-1) * (45-10)/9;
+      return { vel, basePts: Math.round(basePts) };
+    }
+
+    function shuffleCopy(arr){
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
       }
+      return a;
+    }
 
-      btn.addEventListener('click', checkAnswer);
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') checkAnswer();
-      });
+    function formatTime(sec){
+      const m = Math.floor(sec / 60).toString().padStart(2,'0');
+      const s = (sec % 60).toString().padStart(2,'0');
+      return `${m}:${s}`;
+    }
 
-    } else {
-      // ❓ КВИЗ: несколько вариантов, первый = правильный
-      const correct = options[0];
-      const shuffled = shuffle([...options]);
+    function stopSpawning(){
+      if (spawnerHandle){
+        clearTimeout(spawnerHandle);
+        spawnerHandle = null;
+      }
+    }
+    function clearItems(){
+      document.querySelectorAll('.item').forEach(n => n.remove());
+    }
 
-      const list = document.createElement('div');
-      list.style.display = 'flex';
-      list.style.flexDirection = 'column';
-      list.style.gap = '8px';
-      list.style.marginTop = '8px';
+    function startGame(){
+      SPEED = computeSpeedParams(cfg?.speed ?? 5);
+      score = 0;
+      hits = 0;
+      wrongClicks = 0;
+      missedCorrect = 0;
+      streak = 0;
+      hudScore.textContent = '0';
 
-      shuffled.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.textContent = opt;
-        Object.assign(btn.style, {
-          padding: '8px 10px',
-          borderRadius: '999px',
-          border: 'none',
-          fontSize: '16px',
-          cursor: 'pointer',
-          background: 'rgba(255,255,255,0.9)',
-          color: '#2d3436'
-        });
-        btn.addEventListener('click', () => {
-          if (opt === correct) {
-            btn.style.background = '#00b894';
-            btn.style.color = '#fff';
-            setTimeout(() => {
-              msg.remove();
-              if (popped === total && !finalUnlocked) {
-                finalUnlocked = true;
-                showFinal();
-              }
-            }, 500);
-          } else {
-            btn.style.background = '#d63031';
-            btn.style.color = '#fff';
+      if (globalTimerHandle){
+        clearInterval(globalTimerHandle);
+        globalTimerHandle = null;
+      }
+      globalTimeLeft = Number(cfg?.globalTimer || 0);
+
+      if (globalTimeLeft > 0){
+        hudTimer.style.display = 'inline-block';
+        hudTimer.textContent = formatTime(globalTimeLeft);
+        globalTimerHandle = setInterval(()=>{
+          if (!running) return;
+          globalTimeLeft--;
+          hudTimer.textContent = formatTime(globalTimeLeft);
+          if (globalTimeLeft <= 0){
+            clearInterval(globalTimerHandle);
+            globalTimerHandle = null;
+            running = false;
+            stopSpawning();
+            clearItems();
+            fireworks();
+            try{ winSound.currentTime=0; winSound.play(); }catch(_){}
+            showGameCompleteOverlay({
+              score,
+              hits,
+              wrong: wrongClicks,
+              missed: missedCorrect
+            });
           }
-        });
-        list.appendChild(btn);
-      });
+        }, 1000);
+      } else {
+        hudTimer.style.display = 'none'; // таймер нет -> не показываем
+      }
 
-      msg.appendChild(list);
+      if (cfg.randomLevels && Array.isArray(cfg.levels)) {
+        cfg.levels = shuffleCopy(cfg.levels);
+      }
+
+      currentLevel = 0;
+      running = true;
+      startLevel();
     }
 
-    // MathJax для вопроса/вариантов
-    if (window.MathJax && window.MathJax.typesetPromise) {
-      window.MathJax.typesetPromise([msg]).catch(() => {});
+    function startLevel(){
+      const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
+      currentLevel++;
+      if (currentLevel > levels.length){
+        running = false;
+        stopSpawning();
+        clearItems();
+        fireworks();
+        try{ winSound.currentTime=0; winSound.play(); }catch(_){}
+        showGameCompleteOverlay({
+          score,
+          hits,
+          wrong: wrongClicks,
+          missed: missedCorrect
+        });
+        return;
+      }
+      const game = document.getElementById('game');
+      currentQuestion = levels[currentLevel - 1] || {};
+      const correctArr = Array.isArray(currentQuestion.correct)
+        ? currentQuestion.correct.filter(Boolean)
+        : [];
+      neededCorrect = correctArr.length;
+      foundCorrect = new Set();
+
+      updateHUD(currentLevel, levels.length);
+      setQuestionText(currentQuestion.target || currentQuestion.question || '');
+
+      stopSpawning();
+      clearItems();
+
+      const correct = correctArr.map(v => ({ val: v, good: true }));
+      const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
+      const poolRaw = [...correct, ...wrong];
+      if (!poolRaw.length) return;
+
+      // мешок для равномерного выбора
+      let bag = [];
+      let bagIndex = 0;
+      function nextFromBag(){
+        if (bagIndex >= bag.length){
+          bag = shuffleCopy(poolRaw);
+          bagIndex = 0;
+        }
+        return bag[bagIndex++];
+      }
+
+      const DIR = (cfg.direction || 'down');
+      const gw  = game.clientWidth;
+      const gh  = game.clientHeight;
+
+      const MAX_ACTIVE = 4; // максимум элементов одновременно
+      const columns = 6;    // для распределения по ширине
+      const baseInterval = clamp(2000 - (SPEED.vel*240), 450, 2000);
+
+      function spawnOne(){
+        if (!running) return;
+        let candidate;
+        let safety = 12;
+        // не более одного такого же значения на экране
+        while (safety-- > 0){
+          candidate = nextFromBag();
+          const same = Array.from(document.querySelectorAll('.item'))
+            .some(el => el.dataset.value === String(candidate.val));
+          if (!same || poolRaw.length === 1) break;
+        }
+        drop(candidate, DIR, gw, gh);
+      }
+
+      function spawnLoop(){
+        if (!running) return;
+        const activeNow = document.querySelectorAll('.item').length;
+        if (activeNow < MAX_ACTIVE){
+          spawnOne();
+        }
+        const loadFactor = activeNow / MAX_ACTIVE;
+        const k = 0.8 + Math.random()*0.4;
+        const nextDelay = baseInterval * clamp(1.2 - loadFactor, 0.5, 1.2) * k;
+        spawnerHandle = setTimeout(spawnLoop, nextDelay);
+      }
+      spawnLoop();
     }
 
-    root.appendChild(msg);
-  }
+    /* ===== Элемент: создание/падение/клик ===== */
+    function drop(obj, DIR, gw, gh){
+      const game = document.getElementById('game');
+      const STYLE = cfg.style || {};
+      const FONT = cfg.font || 'Rubik';
+      const FONT_SIZE = Number(cfg.fontSize || 24);
+      const TEXT_COLOR = cfg.textColor || '#ffffff';
 
-  // ----------------------
-  // ФИНАЛЬНЫЙ ФИДБЕК (сундук / своя картинка)
-  // ----------------------
-  function showFinal() {
-    try { counter.remove(); } catch(_){}
+      const el = document.createElement('div');
+      el.className =
+        `item shape-${STYLE.shape || 'rounded'} `+
+        `${STYLE.shadow?'fx-shadow':''} `+
+        `${STYLE.fx3d?'fx-3d':''} `+
+        `${STYLE.glow?'fx-glow':''} `+
+        `${STYLE.borderOn && STYLE.borderWidth>0 ? 'fx-border' : ''}`;
+      el.dataset.good = obj.good ? '1' : '0';
+      el.dataset.value = obj.val;
+      el.style.setProperty('--glow', STYLE.glowColor || '#00f0ff');
 
-    const chest = document.createElement('img');
-    chest.src = feedbackImage || 'https://img.genially.com/64233afb55129a0017751c8e/915b9b98-7a24-4b3f-887a-28042ba9acca.png';
-    Object.assign(chest.style, {
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%) scale(1)',
-      width: '240px',
-      cursor: 'pointer',
-      zIndex: 300,
-      pointerEvents: 'auto',
-      transition: 'transform 0.4s ease',
-      animation: 'fadeIn 0.8s ease-out'
-    });
-    root.appendChild(chest);
+      const bg = document.createElement('div');
+      bg.className = 'bg';
+      const content = document.createElement('div');
+      content.className = 'content';
+      const PAD = Number(STYLE.pad || 22);
+      content.style.padding = PAD + 'px';
+      const IMG_BOX = Number(STYLE.imgBox || 160);
+      el.appendChild(bg); el.appendChild(content);
 
-    const openSound = new Audio(sounds.open);
+      const bgCol = STYLE.bgColor || 'transparent';
+      let bgList = [];
+      if (STYLE.bgImage){
+        bgList = bgList.concat(
+          String(STYLE.bgImage)
+            .split(/[\n\r,|;]+/)
+            .map(s=>s.trim())
+            .filter(Boolean)
+        );
+      }
+      if (STYLE.bgImages){
+        if (Array.isArray(STYLE.bgImages)){
+          bgList = bgList.concat(STYLE.bgImages.filter(Boolean));
+        } else {
+          bgList = bgList.concat(
+            String(STYLE.bgImages)
+              .split(/[\n\r,|;]+/)
+              .map(s=>s.trim())
+              .filter(Boolean)
+          );
+        }
+      }
+      bgList = bgList.filter(Boolean);
+      if (!bgList.length){
+        bg.style.backgroundImage = 'none';
+        bg.style.backgroundColor = bgCol;
+      } else {
+        const chosenBg = bgList[Math.floor(Math.random() * bgList.length)];
+        bg.style.backgroundImage = `url(${chosenBg})`;
+        bg.style.backgroundColor = 'transparent';
+      }
+      bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
 
-    chest.addEventListener('click', () => {
-      chest.src = feedbackImage || 'https://img.genially.com/64233afb55129a0017751c8e/d76550fd-2622-441f-bbf2-faee6906772e.png';
-      chest.style.transform = 'translate(-50%, -50%) scale(1.1)';
-      openSound.play().catch(() => {});
+      const shapeKind = (STYLE.shape || 'rounded');
+      if (STYLE.borderOn && STYLE.borderWidth > 0){
+        const bw = `${parseInt(STYLE.borderWidth,10)}px`;
+        const bc = STYLE.borderColor || '#fff';
+        if (shapeKind === 'diamond' || shapeKind === 'star'){
+          bg.style.borderWidth = '0px';
+          bg.classList.add('poly-border');
+          bg.style.setProperty('--bw', bw);
+          bg.style.setProperty('--bc', bc);
+        } else {
+          bg.classList.remove('poly-border');
+          bg.style.removeProperty('--bw');
+          bg.style.removeProperty('--bc');
+          bg.style.borderColor = bc;
+          bg.style.borderWidth = bw;
+        }
+      } else {
+        bg.classList.remove('poly-border');
+        bg.style.removeProperty('--bw');
+        bg.style.removeProperty('--bc');
+        bg.style.borderWidth = '0px';
+      }
 
-      // Блёстки
-      for (let i = 0; i < 40; i++) {
-        const sparkle = document.createElement('div');
-        sparkle.textContent = ['✨', '💫', '🌟', '🔮'][Math.floor(Math.random() * 4)];
-        const dx = (Math.random() - 0.5) * 220;
-        const dy = (Math.random() - 0.5) * 220;
-        sparkle.style.setProperty('--dx', dx + 'px');
-        sparkle.style.setProperty('--dy', dy + 'px');
+      // контент: картинка или текст
+      if (/^https?:\/\//i.test(obj.val)) {
+        const img = document.createElement('img');
+        img.src = obj.val;
+        content.appendChild(img);
+        content.style.setProperty('--cw', IMG_BOX + 'px');
+        content.style.setProperty('--ch', IMG_BOX + 'px');
+        const shape = (STYLE.shape || 'rounded');
+        const hasImageFrame = bgList.length>0;
+        const padX = hasImageFrame ? 30 : 22;
+        const padY = hasImageFrame ? 24 : 18;
+        let W = IMG_BOX + padX*2 + PAD*2;
+        let H = IMG_BOX + padY*2 + PAD*2;
+        if (shape === 'circle' || shape === 'diamond' || shape === 'star') {
+          const S = Math.max(W, H);
+          W = H = S;
+        }
+        el.style.width  = W + 'px';
+        el.style.height = H + 'px';
+        img.onload = () => { el.style.width = W + 'px'; el.style.height = H + 'px'; };
+      } else if ((cfg.language||'') === 'math'){
+        const span = document.createElement('span');
+        span.textContent = `\\(${obj.val}\\)`;
+        span.style.color = TEXT_COLOR;
+        span.style.fontSize = `${FONT_SIZE}px`;
+        span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
+        content.appendChild(span);
+      } else {
+        const span = document.createElement('span');
+        span.textContent = String(obj.val);
+        span.style.color = TEXT_COLOR;
+        span.style.fontFamily = `${FONT}, system-ui, sans-serif`;
+        span.style.fontSize = `${FONT_SIZE}px`;
+        content.appendChild(span);
+      }
 
-        Object.assign(sparkle.style, {
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: `translate(-50%, -50%) scale(${Math.random() * 0.6 + 0.6})`,
-          fontSize: `${Math.random() * 20 + 10}px`,
-          opacity: '0.8',
-          animation: 'sparkFly 1.4s ease-out forwards',
-          zIndex: 350,
-          pointerEvents: 'none'
+      // начальная позиция, равномерно по ширине
+      const MARGIN_X = 40;
+      const MARGIN_Y = 40;
+      let x, y;
+      if (DIR === 'down' || DIR === 'up') {
+        const colWidth = gw / (columns+1);
+        const col = Math.floor(Math.random()*columns) + 1;
+        const baseX = colWidth * col;
+        x = baseX + rnd(-colWidth*0.35, colWidth*0.35);
+        x = clamp(x, MARGIN_X, gw - MARGIN_X);
+        y = (DIR === 'down') ? -220 : (gh + 220);
+      } else {
+        y = rnd(MARGIN_Y, gh - 160);
+        x = (DIR === 'left') ? -220 : (gw + 220);
+      }
+      el.style.left = x + 'px';
+      el.style.top  = y + 'px';
+      game.appendChild(el);
+
+      fitGeometryBox(el);
+      autoFitText(el, FONT_SIZE, 12);
+
+      if ((cfg.language||'') === 'math'){
+        MathJax.typesetPromise([el]).then(()=>{
+          fitGeometryBox(el);
         });
-        root.appendChild(sparkle);
-        setTimeout(() => sparkle.remove(), 1500);
       }
 
-      // Текст фидбека
-      const label = document.createElement('div');
-      label.innerHTML = finalText || '🎉 Well done!';
-      Object.assign(label.style, {
-        position: 'absolute',
-        top: '30%',
-        left: '50%',
-        transform: 'translate(-50%, -50%) scale(0.7)',
-        fontSize: '32px',
-        fontWeight: 'bold',
-        color: '#fff',
-        padding: '16px 30px',
-        background: 'linear-gradient(135deg, #e67e22, #f1c40f)',
-        borderRadius: '16px',
-        fontFamily: 'Comic Sans MS, sans-serif',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-        zIndex: 400,
-        pointerEvents: 'none',
-        textShadow: '2px 2px 6px rgba(0,0,0,0.4)',
-        animation: 'popUp 0.7s ease-out forwards'
+      const vel = SPEED.vel;
+      const swayAmp = rnd(6, 22);
+      const swayFreq = rnd(0.003, 0.008);
+      let t = 0;
+      let alive = true;
+
+      function step(){
+        if(!alive) return;
+        t += 1;
+        if (DIR === 'down'){
+          y += vel;
+          const dx = Math.sin(t*swayFreq) * swayAmp;
+          el.style.top = y+'px';
+          el.style.transform = `translateX(${dx}px)`;
+          if (y > gh + 260){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else if (DIR === 'up'){
+          y -= vel;
+          const dx = Math.sin(t*swayFreq) * swayAmp;
+          el.style.top = y+'px';
+          el.style.transform = `translateX(${dx}px)`;
+          if (y < -260){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else if (DIR === 'left'){
+          x += vel;
+          const dy = Math.sin(t*swayFreq) * swayAmp;
+          el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
+          if (x > gw + 260){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        } else { // right
+          x -= vel;
+          const dy = Math.sin(t*swayFreq) * swayAmp;
+          el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
+          if (x < -260){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+
+      el.addEventListener('click', (ev)=>{
+        if (!running) return;
+        if (!alive) return;
+        ev.stopPropagation();
+        const isGood = el.dataset.good === '1';
+        if (isGood){
+          alive = false;
+          hits++;
+          streak++;
+          const bonus = Math.max(0, streak-1) * 2;
+          const pts = SPEED.basePts + bonus;
+          score += pts;
+          hudScore.textContent = String(score);
+          foundCorrect.add(el.dataset.value);
+          el.classList.add('caught');
+          playPop(el);
+          popScore(el, '+'+pts, false);
+          setTimeout(()=> el.remove(), 520);
+          if (foundCorrect.size >= neededCorrect){
+            // даём доиграть анимации
+            setTimeout(()=>{
+              stopSpawning();
+              clearItems();
+              const totalLevels = (cfg.levels || []).length;
+              if (currentLevel >= totalLevels){
+                fireworks();
+                try{ winSound.currentTime=0; winSound.play().catch(e=>console.warn(e)); }catch(_){}
+                showGameCompleteOverlay({
+                  score,
+                  hits,
+                  wrong: wrongClicks,
+                  missed: missedCorrect
+                });
+              } else {
+                startLevel();
+              }
+            }, 520);
+          }
+        } else {
+          wrongClicks++;
+          streak = 0;
+          const penalty = Math.max(2, Math.round(SPEED.basePts*0.6));
+          score = Math.max(0, score - penalty);
+          hudScore.textContent = String(score);
+          popScore(el, '-'+penalty, true);
+
+          try{
+            wrongSound.currentTime=0;
+            wrongSound.play().catch(()=>{});
+          }catch(_){}
+          el.classList.add('tint-red');
+          bg.classList.add('shake');
+          setTimeout(()=>{
+            el.classList.remove('tint-red');
+            bg.classList.remove('shake');
+          }, 400);
+        }
       });
+    }
 
-      // применяем стили фидбека из редактора
-      if (styleFeedback){
-        if (styleFeedback.borderColor) {
-          label.style.border = '2px solid ' + styleFeedback.borderColor;
-        }
-        if (styleFeedback.textColor) {
-          label.style.color = styleFeedback.textColor;
-        }
-        if (styleFeedback.neon) {
-          const glow = styleFeedback.borderColor || '#ffffff';
-          label.style.boxShadow = `0 0 20px ${glow}`;
+    /* ===== Геометрия / автофит ===== */
+    function fitGeometryBox(el){
+      const STYLE = cfg.style || {};
+      const content = el.querySelector('.content');
+      if (content && content.style.getPropertyValue('--cw')) return;
+      const shape = STYLE.shape || 'rounded';
+      el.style.width = ''; el.style.height='';
+      const r = content.getBoundingClientRect();
+      const hasImageFrame =
+        (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length > 0 : !!String(STYLE.bgImage||'').trim()) ||
+        (Array.isArray(STYLE.bgImages) ? STYLE.bgImages.length > 0 : false);
+      const padX = hasImageFrame ? 30 : 22;
+      const padY = hasImageFrame ? 24 : 18;
+      let W = Math.ceil(r.width + padX*2);
+      let H = Math.ceil(r.height + padY*2);
+      if (shape === 'circle' || shape === 'diamond' || shape === 'star'){
+        const S = Math.max(W, H);
+        W = H = Math.ceil(S + 16);
+      }
+      el.style.width = W + 'px';
+      el.style.height = H + 'px';
+    }
+
+    function autoFitText(el, startPx, minPx){
+      const span = el.querySelector('.content span');
+      if(!span) return;
+      let fs = startPx;
+      const STYLE = cfg.style || {};
+      const pad = STYLE.pad ?? 18;
+      const maxW = el.clientWidth - pad*2;
+      const maxH = el.clientHeight - pad*2;
+      const fits = ()=> {
+        const rr = span.getBoundingClientRect();
+        return (rr.width <= maxW && rr.height <= maxH);
+      };
+      while (fs > minPx){
+        span.style.fontSize = fs + 'px';
+        if (fits()) break;
+        fs -= 1;
+      }
+    }
+
+    /* ===== Эффекты ===== */
+    function playPop(el){
+      try{
+        popSound.currentTime = 0;
+        popSound.play().catch(()=>{});
+      }catch(_){}
+      const r = el.getBoundingClientRect();
+      for(let i=0;i<14;i++){
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = (r.left + r.width/2) + 'px';
+        s.style.top  = (r.top  + r.height/2) + 'px';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 40 + Math.random()*70;
+        s.style.setProperty('--dx', (Math.cos(angle)*dist) + 'px');
+        s.style.setProperty('--dy', (Math.sin(angle)*dist) + 'px');
+        document.body.appendChild(s);
+        setTimeout(()=> s.remove(), 1000);
+      }
+    }
+
+    function popScore(el, text, isNegative){
+      const r = el.getBoundingClientRect();
+      const node = document.createElement('div');
+      node.className = 'score-float';
+      node.style.left = (r.left + r.width/2) + 'px';
+      node.style.top  = (r.top + 8) + 'px';
+      node.style.color = isNegative ? '#ff5252' : 'var(--ui)';
+      node.textContent = text;
+      document.body.appendChild(node);
+      setTimeout(()=> node.remove(), 900);
+    }
+
+    function fireworks(count=18){
+      const W = window.innerWidth, H = window.innerHeight;
+      for(let k=0;k<count;k++){
+        const x = Math.random()*W*0.8 + W*0.1;
+        const y = Math.random()*H*0.5 + H*0.1;
+        const parts = 24;
+        for(let i=0;i<parts;i++){
+          const p = document.createElement('div');
+          p.className='firework';
+          p.style.left = x+'px'; p.style.top = y+'px';
+          const angle = (Math.PI*2) * (i/parts) + Math.random()*0.2;
+          const dist = 60 + Math.random()*120;
+          p.style.setProperty('--tx', (Math.cos(angle)*dist)+'px');
+          p.style.setProperty('--ty', (Math.sin(angle)*dist)+'px');
+          p.style.background = `hsl(${Math.floor(Math.random()*360)},90%,70%)`;
+          document.body.appendChild(p);
+          setTimeout(()=> p.remove(), 900);
         }
       }
-
-      root.appendChild(label);
-
-      // MathJax для финального текста
-      if (window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise([label]).catch(() => {});
-      }
-    });
-  }
-
-})();
+    }
   </script>
 </body>
 </html>
