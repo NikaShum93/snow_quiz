@@ -24,7 +24,6 @@
       height:100%;
       overflow:hidden;
     }
-
     /* ===== HUD ===== */
     .hud{
       position:fixed;
@@ -42,7 +41,6 @@
       gap:8px;
       align-items:center;
     }
-
     /* glass‑prism стиль для ВСЕХ рамок */
     .badge,
     .overlay .panel,
@@ -57,7 +55,6 @@
         0 0 0 1px rgba(255,255,255,.04);
       backdrop-filter:blur(18px) saturate(140%);
     }
-
     .badge{
       pointer-events:none;
       font-size:16px;
@@ -66,10 +63,8 @@
       justify-content:center;
       min-height:38px;
     }
-
     .timer{min-width:96px; text-align:center}
     .score{min-width:96px; text-align:center}
-
     .hud-center{
       flex:1;
       display:flex;
@@ -78,7 +73,6 @@
       max-width:70%;
       pointer-events:none;
     }
-
     .questionBadge{
       position:relative;
       max-width:100%;
@@ -91,7 +85,6 @@
       opacity:1;
       transform:translateY(0);
     }
-
     .questionBadge .hudQuestion{
       font-weight:500;
       line-height:1.25;
@@ -102,7 +95,6 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-
     /* ===== Оверлеи (старт / финал) ===== */
     .overlay{
       position:fixed; inset:0;
@@ -134,7 +126,6 @@
       transform:translateY(-1px);
       box-shadow:0 16px 40px rgba(0,0,0,.75);
     }
-
     /* ===== Падающие элементы ===== */
     .item{
       position:absolute;
@@ -179,7 +170,6 @@
       object-fit:contain;
       pointer-events:none;
     }
-
     .shape-rect    .bg{ border-radius:10px }
     .shape-rounded .bg{ border-radius:20px }
     .shape-circle  .bg{ border-radius:50% }
@@ -191,7 +181,6 @@
         21% 91%, 32% 57%, 2% 35%, 39% 35%
       );
     }
-
     .poly-border { box-shadow: inset 0 0 0 var(--bw, 1px) var(--bc, #fff); }
     .shape-diamond.fx-shadow .bg,
     .shape-star.fx-shadow .bg{
@@ -210,7 +199,6 @@
     .fx-3d     .bg{ box-shadow:7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
     .fx-border .bg{ border-style:solid }
-
     /* Поп при ловле — СИЛЬНЕЕ */
     .caught{
       animation:caughtBoom .6s cubic-bezier(.2,1.2,.4,1) forwards;
@@ -220,7 +208,6 @@
       35%  { transform:scale(1.55); opacity:1 }
       100% { transform:scale(0.15); opacity:0 }
     }
-
     /* Блёстки */
     .sparkle{
       position:absolute; width:6px; height:6px; border-radius:50%;
@@ -232,7 +219,6 @@
       from{ opacity:1; transform:translate(0,0) scale(1) }
       to  { opacity:0; transform:translate(var(--dx), var(--dy)) scale(.2) }
     }
-
     /* Всплывающие очки */
     .score-float{
       position:fixed; z-index:30;
@@ -246,7 +232,6 @@
       10% { opacity:1; }
       100%{ transform:translate(-50%,-60px); opacity:0 }
     }
-
     /* Фейерверк (в конце и мини-версии по клику) */
     .firework{
       position:fixed; width:4px; height:4px; border-radius:50%;
@@ -256,7 +241,6 @@
       from{ transform:translate(0,0) scale(1); opacity:1 }
       to  { transform:translate(var(--tx), var(--ty)) scale(0.1); opacity:0 }
     }
-
     /* Красный тинт при ошибке */
     .tint-red .bg { animation:redTintOnly 550ms ease; }
     @keyframes redTintOnly {
@@ -265,7 +249,6 @@
       50%  { filter:hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
       100% { filter:none; }
     }
-
     /* Тряска при ошибке */
     .shake{
       animation:shake .38s ease;
@@ -278,7 +261,6 @@
       80%{transform:translateX(4px)}
       100%{transform:translateX(0)}
     }
-
     /* Финальное окно (тот же glass‑prism стиль) */
     .final-card{
       position:relative;
@@ -337,7 +319,6 @@
       from{ opacity:0; transform:translateY(10px) scale(.96);}
       to  { opacity:1; transform:translateY(0) scale(1);}
     }
-
     .hidden{display:none !important;}
   </style>
   <script>
@@ -364,10 +345,8 @@
     </div>
     <div class="badge score" id="hudScore">0</div>
   </div>
-
   <!-- Сцена -->
   <div id="game" aria-live="polite"></div>
-
   <!-- MathJax -->
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <script>
@@ -407,31 +386,26 @@
       const n=parseInt(s,16);
       return {r:(n>>16)&255, g:(n>>8)&255, b:(n)&255};
     }
-
     const params = new URLSearchParams(location.search);
     const GAME_ID = params.get('id');
     const JSON_BASE = "https://nikashum93.github.io/texts/data/";
-
     let cfg = null;
     let LANG = 'ru';
-
     /* ===== HUD refs ===== */
     const hudTimer    = $('#hudTimer');
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
-
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
     const winSound   = new Audio("win.mp3");
-
     /* ===== Глобальные статы ===== */
     let score = 0;
     let currentLevel = 0;
     let running = false;
     let globalTimerHandle = null;
     let globalTimeLeft = 0;
-    let spawnerHandle = null;
+    let spawnerHandle = null;   // interval id, НЕ timeout
     let hits = 0;
     let wrongClicks = 0;
     let missedCorrect = 0;
@@ -440,7 +414,6 @@
     let neededCorrect = 0;
     let foundCorrect = new Set();
     let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
-
     /* ===== ФОНЫ ===== */
     let bgImgEl = null;
 
@@ -458,12 +431,9 @@
         showFatal("Load error", `Ошибка загрузки настроек: ${e.message}\nПроверь публикацию в texts/data.`);
         return;
       }
-
       LANG = (cfg.language || 'ru').toLowerCase();
-
       if(cfg.font)         loadGoogleFont(cfg.font);
       if(cfg.questionFont) loadGoogleFont(cfg.questionFont);
-
       const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
       const rgb = Object.values(hexToRgb(uiColor)).join(',');
       document.documentElement.style.setProperty('--ui', uiColor);
@@ -472,7 +442,6 @@
         document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
       }
       if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
-
       setupBackgrounds();
       showStartOverlay();
     })();
@@ -515,20 +484,17 @@
       const isMath = (lang === 'math');
       const qFont = cfg.questionFont || cfg.font || 'Rubik';
       const baseSize = Number(cfg.questionFontSize || 26);
-
       if (q){
         document.body.classList.add('has-question');
       } else {
         document.body.classList.remove('has-question');
       }
-
       if (isMath && q){
         hudQuestion.textContent = `\\(${q}\\)`;
         MathJax.typesetPromise([hudQuestion]);
       } else {
         hudQuestion.textContent = q;
       }
-
       const len = q.length;
       let size = baseSize;
       if (!cfg.questionFontSize){
@@ -554,14 +520,12 @@
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
       overlayNode.className = 'overlay';
-
       const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
                      ? cfg.start.title.trim()
                      : t(LANG,'startTitle');
       const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
                      ? cfg.start.btnText.trim()
                      : t(LANG,'startBtn');
-
       overlayNode.innerHTML = `
         <div class="panel">
           <h2>${title}</h2>
@@ -573,7 +537,6 @@
           </div>
         </div>`;
       document.body.appendChild(overlayNode);
-
       $('#btnStart').addEventListener('click', ()=>{
         overlayNode.remove();
         startGame();
@@ -584,16 +547,13 @@
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
       overlayNode.className = 'overlay';
-
       const custom  = (cfg.finalFeedback || cfg.feedback || "").trim();
       const fbTitle = t(LANG,'finalFeedbackTitle');
       const fbText  = t(LANG,'defaultFinalFeedback');
-
       const sc = (stats && stats.score != null) ? stats.score : score;
       const h  = stats?.hits ?? hits;
       const w  = stats?.wrong ?? wrongClicks;
       const m  = stats?.missed ?? missedCorrect;
-
       overlayNode.innerHTML = `
         <div class="final-card">
           <div class="final-inner">
@@ -618,7 +578,6 @@
     }
 
     /* ===== Геймплей ===== */
-
     function computeSpeedParams(S){
       const s = clamp(Number(S||5), 1, 10);
       const vel = 0.65 + (s-1) * (6.2-0.65)/9;
@@ -638,7 +597,6 @@
 
     function startGame(){
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-
       score = 0;
       hits = 0;
       wrongClicks = 0;
@@ -682,7 +640,6 @@
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
-
       currentLevel = 0;
       running = true;
       startLevel();
@@ -696,10 +653,11 @@
 
     function stopSpawning(){
       if (spawnerHandle){
-        clearTimeout(spawnerHandle);
+        clearInterval(spawnerHandle);   // <= теперь interval
         spawnerHandle = null;
       }
     }
+
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
@@ -740,21 +698,23 @@
       const pool = [...correct, ...wrong];
       if (!pool.length) return;
 
-      const gh  = game.clientHeight;
+      const uniqueValues = [...new Set(pool.map(p => p.val))];
+      const allowDupOnScreen = uniqueValues.length === 1; // если только одно значение — дубли разрешены
+
+      const gh  = game.clientHeight || 600;
       const fps = 60;
       const fallDistPx  = gh + 320;
       const fallTimeSec = fallDistPx / (SPEED.vel * fps);
 
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
-      const targetActive = 3 + Math.round(sNorm * (4)); // 3–7 теоретически
-      const maxActive    = 4;                           // ЖЁСТКО максимум 4
+      const targetActive = 3 + Math.round(sNorm * 3); // 3–6
+      const maxActive    = 4;                         // жёсткий максимум 4
 
       let interval = (fallTimeSec / targetActive) * 1000;
-      interval = clamp(interval, 450, 2200);
+      interval = clamp(interval, 420, 2000);
 
       let lastSpawnValue = null;
       let lastLane = -1;
-      const LANES = 4;
 
       function countOnScreen(val){
         let n = 0;
@@ -764,20 +724,21 @@
         return n;
       }
 
-      function spawnNext(){
+      function spawnTick(){
         if (!running) return;
 
         const activeNow = document.querySelectorAll('.item').length;
         if (activeNow >= maxActive){
-          spawnerHandle = setTimeout(spawnNext, 150);
+          // важно: ничего не откладываем => нет очереди и «пауз после 4 штук»
           return;
         }
+
         const poolLen = pool.length;
         if (!poolLen) return;
 
         let chosen = null;
         let tries = 0;
-        while(tries < 25){
+        while(tries < 30){
           const cand = pool[Math.floor(Math.random() * poolLen)];
           const val  = cand.val;
           const sameOnScreen = countOnScreen(val);
@@ -785,7 +746,7 @@
           if (poolLen > 1 && val === lastSpawnValue){
             tries++; continue;
           }
-          if (sameOnScreen >= 2 && poolLen > 1){
+          if (!allowDupOnScreen && sameOnScreen >= 1){
             tries++; continue;
           }
           chosen = cand;
@@ -796,29 +757,29 @@
         }
         lastSpawnValue = chosen.val;
 
-        // lanes по ширине, чтобы не кучковались справа
         const gameW = game.clientWidth || 800;
-        const laneWidth = gameW / LANES;
-        let lane = Math.floor(Math.random()*LANES);
-        if (LANES > 1 && lane === lastLane){
-          lane = (lane + 1 + Math.floor(Math.random()* (LANES-1))) % LANES;
+        // динамическое количество дорожек, но не меньше 3 и не больше 6
+        const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
+        const laneWidth = gameW / laneCount;
+
+        let lane = Math.floor(Math.random()*laneCount);
+        if (laneCount > 1 && lane === lastLane){
+          lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
         }
         lastLane = lane;
-        const xMin = lane * laneWidth + 10;
-        const xMax = (lane+1)*laneWidth - 10;
+
+        const xMin = lane * laneWidth + 18;
+        const xMax = (lane+1)*laneWidth - 18;
         const spawnX = rnd(xMin, xMax);
 
         drop(chosen, spawnX);
-
-        const jitter = interval * (0.9 + Math.random() * 0.2);
-        spawnerHandle = setTimeout(spawnNext, Math.max(160, jitter));
       }
 
-      spawnNext();
+      // ровный поток: один interval без рекурсий
+      spawnerHandle = setInterval(spawnTick, interval);
     }
 
     /* ===== Элемент: создание / падение / клик ===== */
-
     function drop(obj, forcedX){
       const game = document.getElementById('game');
       const STYLE = cfg.style || {};
@@ -843,9 +804,7 @@
       content.className = 'content';
       const PAD = Number(STYLE.pad || 22);
       content.style.padding = PAD + 'px';
-
       const IMG_BOX = Number(STYLE.imgBox || 160);
-
       el.appendChild(bg); el.appendChild(content);
 
       // фон
@@ -986,13 +945,14 @@
 
       function step(){
         if(!alive) return;
-        t += 1;
 
-        // не мешаем анимации caught / shake
+        // если сейчас проигрывается caught/ошибка — даём анимации спокойно идти
         if (el.classList.contains('caught') || el.classList.contains('shake')){
           requestAnimationFrame(step);
           return;
         }
+
+        t += 1;
 
         if (DIR === 'down'){
           y += vel;
@@ -1028,6 +988,7 @@
           x -= vel;
           const dy = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
           if (x < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -1043,7 +1004,6 @@
         if (!alive) return;
         ev.stopPropagation();
         const isGood = el.dataset.good === '1';
-
         if (isGood){
           alive = false;
           hits++;
@@ -1053,16 +1013,12 @@
           score += pts;
           hudScore.textContent = String(score);
           foundCorrect.add(el.dataset.value);
-
           el.classList.remove('shake','tint-red');
           el.classList.add('caught');
-
           playPop(el);
           smallFireworkAt(el);
           popScore(el, '+'+pts);
-
           setTimeout(()=> el.remove(), 580);
-
           if (foundCorrect.size >= neededCorrect){
             finishLevelAfter(el);
           }
@@ -1085,7 +1041,7 @@
 
     function finishLevelAfter(clickedEl){
       stopSpawning();
-      // слегка подождать, чтобы анимация была видна
+      // небольшая пауза, чтобы был виден «бум» правильного ответа
       setTimeout(()=>{
         const totalLevels = (cfg.levels || []).length;
         if (currentLevel >= totalLevels){
@@ -1110,9 +1066,11 @@
       const STYLE = cfg.style || {};
       const content = el.querySelector('.content');
       if (content && content.style.getPropertyValue('--cw')) return;
+
       const shape = STYLE.shape || 'rounded';
       el.style.width = ''; el.style.height='';
       const r = content.getBoundingClientRect();
+
       const hasImageFrame =
         String(STYLE.bgImage||'').trim() ||
         (Array.isArray(STYLE.bgImages) && STYLE.bgImages.length>0);
@@ -1148,7 +1106,6 @@
     }
 
     /* ===== Эффекты ===== */
-
     function playPop(el){
       try{
         popSound.currentTime = 0;
