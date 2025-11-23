@@ -24,22 +24,33 @@
       height:100%;
       overflow:hidden;
     }
+
     /* ===== HUD ===== */
     .hud{
       position:fixed;
-      left:12px; top:12px; right:12px;
+      inset:0;
       display:flex;
-      gap:12px;
-      align-items:center;
+      flex-direction:column;
       justify-content:space-between;
-      font-weight:700;
       z-index:10;
       pointer-events:none;
+    }
+    .hud-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      padding:12px;
+      gap:12px;
     }
     .hud-left{
       display:flex;
       gap:8px;
       align-items:center;
+    }
+    .hud-right{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
     }
     .badge{
       pointer-events:none;
@@ -51,31 +62,108 @@
       font-size:16px;
     }
     .timer{min-width:96px; text-align:center}
-    .qnum{min-width:70px; text-align:center; font-size:14px;}
     .score{min-width:96px; text-align:center}
-    .hud-center{
+
+    /* центральный вопрос */
+    .hud-center-wrap{
       flex:1;
       display:flex;
       align-items:center;
       justify-content:center;
-      max-width:70%;
-      pointer-events:auto;
+      pointer-events:none;
+      padding:0 26px 26px;
     }
+
     .questionBadge{
-      max-width:100%;
+      position:relative;
+      max-width: min(820px, 100%);
+      pointer-events:auto;
+
+      /* glass prism */
+      border-radius:24px;
+      padding:18px 26px 20px 26px;
+      background:linear-gradient(135deg,rgba(8,8,20,.96),rgba(18,18,38,.9));
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:
+        0 22px 48px rgba(0,0,0,.85),
+        0 0 32px rgba(0,0,0,.6);
+      backdrop-filter:blur(18px) saturate(160%);
+      -webkit-backdrop-filter:blur(18px) saturate(160%);
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(-8px) scale(.96);
+      transition:opacity .22s ease, transform .22s ease;
     }
-    .questionBadge .hudQuestion{
+    .questionBadge.visible{
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+    .questionBadge::before{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background:
+        conic-gradient(
+          from 180deg,
+          rgba(255,255,255,.12),
+          rgba(255,215,0,.22),
+          rgba(0,255,255,.18),
+          rgba(180,120,255,.25),
+          rgba(255,255,255,.12)
+        );
+      opacity:.45;
+      mix-blend-mode:soft-light;
+      pointer-events:none;
+    }
+    .questionBadge-inner{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .hudQuestion{
       font-weight:500;
-      line-height:1.2;
+      line-height:1.25;
       max-width:100%;
       white-space:normal;
       word-wrap:break-word;
-      max-height:4.2em;
+      max-height:4.4em;
       overflow:hidden;
       text-overflow:ellipsis;
       text-align:center;
-      transition:font-size .15s ease, opacity .15s ease;
     }
+    .questionBadge .hudQuestion-math .mjx-container{
+      font-size:inherit!important;
+    }
+
+    /* кружок счётчика, наложенный на рамку */
+    .qchip{
+      position:absolute;
+      left:14px;
+      top:14px;
+      transform:translate(-15%, -35%);
+      width:40px;
+      height:40px;
+      border-radius:999px;
+      background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.86),rgba(15,15,35,.9));
+      box-shadow:0 10px 25px rgba(0,0,0,.9);
+      border:1px solid rgba(255,255,255,.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      font-weight:800;
+      color:#111;
+      letter-spacing:.02em;
+    }
+    .qchip span{
+      background:linear-gradient(135deg,#111,#433,#eee);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
     /* ===== Оверлеи (старт / финал) ===== */
     .overlay{
       position:fixed; inset:0;
@@ -85,28 +173,69 @@
       pointer-events:auto;
     }
     .overlay .panel{
-      background: rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:16px;
-      padding:22px 26px;
+      position:relative;
+      border-radius:26px;
+      padding:22px 26px 24px;
+      min-width:min(92vw,520px);
       text-align:center;
-      box-shadow:0 0 26px var(--ui-soft);
-      min-width:min(92vw,560px);
+
+      background:linear-gradient(140deg,rgba(6,6,16,.96),rgba(18,18,40,.94));
+      border:1px solid rgba(255,255,255,.18);
+      box-shadow:
+        0 24px 52px rgba(0,0,0,.9),
+        0 0 40px rgba(0,0,0,.7);
+      backdrop-filter:blur(20px) saturate(170%);
+      -webkit-backdrop-filter:blur(20px) saturate(170%);
+      overflow:hidden;
+    }
+    .overlay .panel::before{
+      content:"";
+      position:absolute;
+      inset:-30%;
+      background:conic-gradient(
+        from 200deg,
+        rgba(255,255,255,.14),
+        rgba(255,215,0,.25),
+        rgba(0,255,255,.18),
+        rgba(160,120,255,.22),
+        rgba(255,255,255,.14)
+      );
+      opacity:.35;
+      mix-blend-mode:soft-light;
+      pointer-events:none;
     }
     .overlay h2{
+      position:relative;
       margin:6px 0 6px;
-      font-size:24px; font-weight:900; color:var(--ui);
-      text-shadow:0 0 20px var(--ui-soft);
+      font-size:24px; font-weight:900; color:#fff;
+      text-shadow:0 0 16px rgba(0,0,0,.6);
+      z-index:1;
     }
-    .overlay p{ margin:0 0 8px; opacity:.9 }
-    .overlay .row{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap }
+    .overlay p{
+      position:relative;
+      margin:0 0 8px;
+      opacity:.92;
+      z-index:1;
+    }
+    .overlay .row{
+      position:relative;
+      display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap;
+      z-index:1;
+    }
     .overlay button{
-      background:linear-gradient(90deg,#ffbf00,#ffd700);
-      color:#000; border:0; border-radius:10px; font-weight:900; padding:12px 16px; cursor:pointer;
-      transition:transform .12s ease, box-shadow .12s ease;
+      background:linear-gradient(120deg,#ffbf00,#ffd700);
+      color:#000; border:0; border-radius:999px; font-weight:900; padding:12px 20px; cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
       pointer-events:auto;
+      box-shadow:0 10px 26px rgba(0,0,0,.75);
+      font-size:16px;
     }
-    .overlay button:hover{ transform:translateY(-1px); box-shadow:0 10px 24px rgba(255,215,0,.35) }
+    .overlay button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 14px 36px rgba(0,0,0,.9);
+      filter:brightness(1.05);
+    }
+
     /* ===== Падающие элементы ===== */
     .item{
       position:absolute;
@@ -182,23 +311,28 @@
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
     .fx-border .bg{ border-style:solid }
 
-    /* Поп при ловле (увеличение) */
-    .caught{ animation:pop .45s ease forwards }
-    @keyframes pop{
-      0%{ transform:scale(1); opacity:1 }
-      50%{ transform:scale(1.2); opacity:1 }
-      100%{ transform:scale(0.7); opacity:0 }
+    /* Поп при ловле — сделал заметнее */
+    .caught{
+      animation:popBig .6s ease forwards;
+    }
+    @keyframes popBig{
+      0%  { transform:scale(1); opacity:1 }
+      35% { transform:scale(1.3); opacity:1 }
+      65% { transform:scale(0.92); opacity:.9 }
+      100%{ transform:scale(0.5); opacity:0 }
     }
 
-    /* Дёргание при ошибке */
+    /* Шейк для ошибки */
     .shake{
-      animation:shake .45s cubic-bezier(.36,.07,.19,.97);
+      animation:shakeItem .35s ease;
     }
-    @keyframes shake{
-      10%, 90% { transform: translateX(-1px); }
-      20%, 80% { transform: translateX(2px); }
-      30%, 50%, 70% { transform: translateX(-4px); }
-      40%, 60% { transform: translateX(4px); }
+    @keyframes shakeItem{
+      0%{transform:translateX(0)}
+      20%{transform:translateX(-10px)}
+      40%{transform:translateX(8px)}
+      60%{transform:translateX(-6px)}
+      80%{transform:translateX(4px)}
+      100%{transform:translateX(0)}
     }
 
     /* Блёстки */
@@ -206,17 +340,18 @@
       position:absolute; width:6px; height:6px; border-radius:50%;
       background:rgba(255,255,255,.9); pointer-events:none;
       animation:spark 0.9s forwards;
-      filter:drop-shadow(0 0 6px #fff); z-index:5;
+      filter:drop-shadow(0 0 6px #fff); z-index:30;
     }
     @keyframes spark{
       from{ opacity:1; transform:translate(0,0) scale(1) }
       to  { opacity:0; transform:translate(var(--dx), var(--dy)) scale(.2) }
     }
+
     /* Всплывающие очки */
     .score-float{
-      position:fixed; z-index:30;
+      position:fixed; z-index:35;
       font-weight:900;
-      text-shadow: 0 0 10px rgba(255,255,255,.5), 0 0 20px var(--ui-soft);
+      text-shadow: 0 0 10px rgba(0,0,0,.8), 0 0 20px var(--ui-soft);
       animation:floatUp .85s ease-out forwards;
       pointer-events:none;
     }
@@ -225,6 +360,7 @@
       10% { opacity:1; }
       100%{ transform:translate(-50%,-60px); opacity:0 }
     }
+
     /* Фейерверк */
     .firework{
       position:fixed; width:4px; height:4px; border-radius:50%;
@@ -234,6 +370,7 @@
       from{ transform:translate(0,0) scale(1); opacity:1 }
       to  { transform:translate(var(--tx), var(--ty)) scale(0.1); opacity:0 }
     }
+
     /* Красный тинт при ошибке */
     .tint-red .bg { animation: redTintOnly 550ms ease; }
     @keyframes redTintOnly {
@@ -242,30 +379,41 @@
       50%  { filter: hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
       100% { filter: none; }
     }
-    /* Финальное окно */
+
+    /* Финальное окно — тот же glass prism, только компактно */
     .final-card{
       position:relative;
-      padding:4px;
-      border-radius:20px;
-      overflow:hidden;
+      border-radius:26px;
+      padding:24px 26px 22px;
+      background:linear-gradient(145deg,rgba(6,6,18,.96),rgba(16,16,34,.94));
+      border:1px solid rgba(255,255,255,.2);
+      box-shadow:
+        0 24px 52px rgba(0,0,0,.9),
+        0 0 40px rgba(0,0,0,.7);
+      backdrop-filter:blur(20px) saturate(170%);
+      -webkit-backdrop-filter:blur(20px) saturate(170%);
       animation:finalFadeIn .45s ease-out both;
+      overflow:hidden;
     }
-    .final-glow{
+    .final-card::before{
+      content:"";
       position:absolute;
-      inset:0;
+      inset:-35%;
       background:conic-gradient(
-        from 0deg,
-        #ff4d6a,#ffb347,#ffe65b,
-        #6bff8a,#5bdcff,#a56bff,#ff4dff,#ff4d6a
+        from 210deg,
+        rgba(255,255,255,.16),
+        rgba(255,215,0,.24),
+        rgba(0,255,255,.18),
+        rgba(170,130,255,.22),
+        rgba(255,255,255,.16)
       );
-      animation:glowSpin 5s linear infinite;
-      opacity:.9;
+      opacity:.4;
+      mix-blend-mode:soft-light;
+      pointer-events:none;
     }
     .final-inner{
       position:relative;
-      border-radius:16px;
-      background:rgba(10,10,25,.96);
-      padding:22px 26px;
+      z-index:1;
       min-width:min(92vw,360px);
       color:#fff;
       text-align:center;
@@ -273,8 +421,8 @@
     .final-title{
       font-size:26px;
       margin:0 0 10px;
-      color:var(--ui);
-      text-shadow:0 0 18px var(--ui-soft);
+      color:#fff;
+      text-shadow:0 0 18px rgba(0,0,0,.7);
     }
     .final-main-score{
       font-size:32px;
@@ -293,7 +441,7 @@
     .final-stats .label{opacity:.85}
     .final-stats .value{font-weight:700}
     .btn-final{
-      background:linear-gradient(90deg,#ffbf00,#ffd700);
+      background:linear-gradient(120deg,#ffbf00,#ffd700);
       color:#000;
       border:0;
       border-radius:999px;
@@ -301,16 +449,13 @@
       padding:10px 20px;
       cursor:pointer;
       font-size:16px;
-      box-shadow:0 8px 26px rgba(0,0,0,.45);
-      transition:transform .12s ease, box-shadow .12s ease;
+      box-shadow:0 10px 30px rgba(0,0,0,.8);
+      transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
     }
     .btn-final:hover{
       transform:translateY(-1px);
-      box-shadow:0 10px 30px rgba(0,0,0,.6);
-    }
-    @keyframes glowSpin{
-      from{ transform:rotate(0deg); }
-      to  { transform:rotate(360deg); }
+      box-shadow:0 14px 36px rgba(0,0,0,.9);
+      filter:brightness(1.05);
     }
     @keyframes finalFadeIn{
       from{ opacity:0; transform:translateY(10px) scale(.96);}
@@ -331,16 +476,22 @@
 <body>
   <!-- HUD -->
   <div class="hud">
-    <div class="hud-left">
-      <div class="badge timer" id="hudTimer">00:00</div>
-      <div class="badge qnum" id="hudQNum">1 / 1</div>
-    </div>
-    <div class="hud-center">
-      <div class="badge questionBadge">
-        <div class="hudQuestion" id="hudQuestion"></div>
+    <div class="hud-top">
+      <div class="hud-left">
+        <div class="badge timer" id="hudTimer">00:00</div>
+      </div>
+      <div class="hud-right">
+        <div class="badge score" id="hudScore">0</div>
       </div>
     </div>
-    <div class="badge score" id="hudScore">0</div>
+    <div class="hud-center-wrap">
+      <div class="questionBadge" id="questionCard">
+        <div class="qchip" id="hudQChip"><span>1/1</span></div>
+        <div class="questionBadge-inner">
+          <div class="hudQuestion" id="hudQuestion"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Сцена -->
@@ -352,19 +503,17 @@
     /* ===== Локализация ===== */
     const I18N = {
       ru:{ startTitle:"Игра «Падающие элементы»", startBtn:"Начать",
-        restartBtn:"Играть снова", catchAll:"Поймай все",
-        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        restartBtn:"Играть снова",
         time:"Время", score:"Счёт",
-        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        gameComplete:"Игра пройдена!",
         hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
         finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
       },
-      math:{ 
+      math:{
         startTitle:"Игра «Падающие элементы» (Математика)",
-        startBtn:"Начать", restartBtn:"Играть снова", catchAll:"Поймай все",
-        level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
+        startBtn:"Начать", restartBtn:"Играть снова",
         time:"Время", score:"Счёт",
-        levelComplete:"Уровень пройден!", gameComplete:"Игра пройдена!",
+        gameComplete:"Игра пройдена!",
         hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
         finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
       }
@@ -373,7 +522,6 @@
       const dict = I18N[lang]||I18N.ru; const v = dict[key];
       return (typeof v==="function")?v(...args):(v??key);
     }
-
     const $ = sel => document.querySelector(sel);
     const rnd = (a,b)=> a + Math.random()*(b-a);
     const clamp = (v,min,max)=> Math.max(min, Math.min(max,v));
@@ -394,10 +542,11 @@
     let LANG = 'ru';
 
     /* ===== HUD refs ===== */
-    const hudTimer = $('#hudTimer');
-    const hudQNum  = $('#hudQNum');
-    const hudScore = $('#hudScore');
+    const hudTimer    = $('#hudTimer');
+    const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
+    const hudQChip    = $('#hudQChip');
+    const questionCard= $('#questionCard');
 
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
@@ -424,6 +573,11 @@
     let bgImgEl = null;
 
     (async function boot(){
+      // прячем вопрос до старта
+      if(questionCard){
+        questionCard.classList.remove('visible');
+      }
+
       if(!GAME_ID){
         showFatal("No id", "Не передан id в строке запроса.");
         return;
@@ -439,13 +593,8 @@
       }
 
       LANG = (cfg.language || 'ru').toLowerCase();
-
-      if(cfg.font){
-        loadGoogleFont(cfg.font);
-      }
-      if(cfg.questionFont){
-        loadGoogleFont(cfg.questionFont);
-      }
+      if(cfg.font)        loadGoogleFont(cfg.font);
+      if(cfg.questionFont)loadGoogleFont(cfg.questionFont);
 
       const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
       const rgb = Object.values(hexToRgb(uiColor)).join(',');
@@ -457,7 +606,6 @@
       if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
 
       setupBackgrounds();
-      updateHUD(1, (cfg.levels||[]).length||0);
       showStartOverlay();
     })();
 
@@ -477,7 +625,6 @@
       }
       const pick = () => list[Math.floor(Math.random()*list.length)];
       bgImgEl.src = pick();
-
       const _startLevel = startLevel;
       startLevel = function(){
         if (bgImgEl && bgImgEl.parentNode){
@@ -491,22 +638,21 @@
     }
 
     /* ===== HUD / Оверлеи ===== */
-    let overlayNode = null;
 
-    function updateHUD(current, total){
-      if (hudQNum){
-        hudQNum.textContent = total ? `${current} / ${total}` : `${current}`;
+    function setQuestionText(idx, total, text){
+      if (!hudQuestion || !questionCard) return;
+
+      // номер в кружке
+      if(hudQChip){
+        hudQChip.innerHTML = `<span>${idx} / ${total}</span>`;
       }
-      // текст вопроса задаётся через setQuestionText
-    }
 
-    function setQuestionText(text){
-      if (!hudQuestion) return;
       const lang = (cfg.language || 'ru').toLowerCase();
       const isMath = (lang === 'math');
       const qFont = cfg.questionFont || cfg.font || 'Rubik';
       const baseSize = Number(cfg.questionFontSize || 26);
 
+      // содержимое
       if (isMath && text){
         hudQuestion.textContent = `\\(${text}\\)`;
         MathJax.typesetPromise([hudQuestion]);
@@ -522,6 +668,9 @@
       }
       hudQuestion.style.fontSize = size + 'px';
       hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
+
+      // показать рамку
+      questionCard.classList.add('visible');
     }
 
     function showFatal(title, message){
@@ -536,20 +685,24 @@
     }
 
     function showStartOverlay(){
+      let overlayNode = $('.overlay');
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
       overlayNode.className = 'overlay';
 
-      const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
-                     ? cfg.start.title.trim()
-                     : t(LANG,'startTitle');
-      const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
-                     ? cfg.start.btnText.trim()
-                     : t(LANG,'startBtn');
+      const title  =
+        (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
+          ? cfg.start.title.trim()
+          : t(LANG,'startTitle');
+      const btnTxt =
+        (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
+          ? cfg.start.btnText.trim()
+          : t(LANG,'startBtn');
 
       overlayNode.innerHTML = `
         <div class="panel">
           <h2>${title}</h2>
+          <p style="margin-top:8px; opacity:.86">Нажми «Старт», чтобы начать.</p>
           <div class="row" style="margin-top:14px">
             <button id="btnStart">${btnTxt}</button>
           </div>
@@ -563,8 +716,9 @@
     }
 
     function showGameCompleteOverlay(stats){
-      if (overlayNode) overlayNode.remove();
-      overlayNode = document.createElement('div');
+      const prev = $('.overlay');
+      if (prev) prev.remove();
+      const overlayNode = document.createElement('div');
       overlayNode.className = 'overlay';
 
       const custom  = (cfg.finalFeedback || cfg.feedback || "").trim();
@@ -578,13 +732,12 @@
 
       overlayNode.innerHTML = `
         <div class="final-card">
-          <div class="final-glow"></div>
           <div class="final-inner">
             <h2 class="final-title">${t(LANG,'gameComplete')}</h2>
             ${
               custom
                 ? `<p style="white-space:pre-wrap; margin:0 0 10px">${custom}</p>`
-                : `<p style="margin:6px 0 10px; font-size:18px; color:var(--ui)">${fbTitle}</p>
+                : `<p style="margin:6px 0 10px; font-size:18px;">${fbTitle}</p>
                    <p style="white-space:pre-wrap; margin:0 0 4px">${fbText}</p>`
             }
             <div class="final-main-score">${sc}</div>
@@ -620,7 +773,6 @@
 
     function startGame(){
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-
       score = 0;
       hits = 0;
       wrongClicks = 0;
@@ -628,12 +780,12 @@
       streak = 0;
       hudScore.textContent = '0';
 
+      // таймер
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
         globalTimerHandle = null;
       }
       globalTimeLeft = Number(cfg?.globalTimer || 0);
-
       if (globalTimeLeft > 0){
         hudTimer.style.display = 'inline-block';
         hudTimer.textContent = formatTime(globalTimeLeft);
@@ -647,7 +799,7 @@
             running = false;
             stopSpawning();
             clearItems();
-            fireworks();            // финальный фейерверк
+            fireworks();
             try{ winSound.currentTime=0; winSound.play(); }catch(_){}
             showGameCompleteOverlay({
               score,
@@ -658,14 +810,13 @@
           }
         }, 1000);
       } else {
-        // если таймера нет — просто скрываем бейдж
+        // таймера нет — прячем блок совсем
         hudTimer.style.display = 'none';
       }
 
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
-
       currentLevel = 0;
       running = true;
       startLevel();
@@ -691,12 +842,11 @@
     function startLevel(){
       const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
       currentLevel++;
-
       if (currentLevel > levels.length){
         running = false;
         stopSpawning();
         clearItems();
-        fireworks();               // финальный фейерверк
+        fireworks();
         try{ winSound.currentTime=0; winSound.play(); }catch(_){}
         showGameCompleteOverlay({
           score,
@@ -715,8 +865,8 @@
       neededCorrect = correctArr.length;
       foundCorrect = new Set();
 
-      updateHUD(currentLevel, levels.length, neededCorrect);
-      setQuestionText(currentQuestion.target || currentQuestion.question || '');
+      const totalLevels = levels.length;
+      setQuestionText(currentLevel, totalLevels, currentQuestion.target || currentQuestion.question || '');
 
       stopSpawning();
       clearItems();
@@ -730,11 +880,9 @@
       const fps = 60;
       const fallDistPx  = gh + 320;
       const fallTimeSec = fallDistPx / (SPEED.vel * fps);
-
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
       const targetActive = Math.round(3 + sNorm * (10 - 3));
       const maxActive    = targetActive + 1;
-
       let interval = (fallTimeSec / targetActive) * 1000;
       interval = clamp(interval, 300, 2200);
 
@@ -779,9 +927,9 @@
       const PAD = Number(STYLE.pad || 22);
       content.style.padding = PAD + 'px';
       const IMG_BOX = Number(STYLE.imgBox || 160);
-
       el.appendChild(bg); el.appendChild(content);
 
+      // фон‑держатели
       const bgCol = STYLE.bgColor || 'transparent';
       let bgList = [];
       if (STYLE.bgImage){
@@ -805,7 +953,6 @@
         }
       }
       bgList = bgList.filter(Boolean);
-
       if (!bgList.length){
         bg.style.backgroundImage = 'none';
         bg.style.backgroundColor = bgCol;
@@ -814,7 +961,6 @@
         bg.style.backgroundImage = `url(${chosenBg})`;
         bg.style.backgroundColor = 'transparent';
       }
-
       bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
 
       const shapeKind = (STYLE.shape || 'rounded');
@@ -846,7 +992,6 @@
         content.appendChild(img);
         content.style.setProperty('--cw', IMG_BOX + 'px');
         content.style.setProperty('--ch', IMG_BOX + 'px');
-
         const shape = (STYLE.shape || 'rounded');
         const hasImageFrame =
           (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length>0 : !!(STYLE.bgImage && String(STYLE.bgImage).trim())) ||
@@ -881,10 +1026,8 @@
       const DIR = (cfg.direction || 'down');
       const gw = game.clientWidth;
       const gh = game.clientHeight;
-
       let x, y;
       const MARGIN = 20;
-
       if (DIR === 'down' || DIR === 'up') {
         x = rnd(0, gw);
         y = (DIR === 'down') ? -160 : (gh + 160);
@@ -894,8 +1037,8 @@
       }
       el.style.left = x + 'px';
       el.style.top  = y + 'px';
-
       game.appendChild(el);
+
       fitGeometryBox(el);
       autoFitText(el, FONT_SIZE, 12);
 
@@ -919,15 +1062,14 @@
         x = clamp(x, min, max);
         el.style.left = x + 'px';
       }
+      adjustX();
 
       let t = 0;
       let alive = true;
-      adjustX();
 
       function step(){
         if(!alive) return;
         t += 1;
-
         if (DIR === 'down'){
           y += vel;
           const dx = Math.sin(t*swayFreq) * swayAmp;
@@ -962,6 +1104,7 @@
           x -= vel;
           const dy = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
           if (x < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -990,17 +1133,17 @@
 
           el.classList.add('caught');
           playPop(el);
-          popScore(el, '+'+pts, false);
-          fireworksAtElement(el);   // локальный фейерверк по клику
+          popScore(el, '+'+pts, 'pos');
+          fireworksAtElement(el, 12);
 
-          setTimeout(()=> el.remove(), 420);
+          setTimeout(()=> el.remove(), 520);
 
           if (foundCorrect.size >= neededCorrect){
             stopSpawning();
             clearItems();
             const totalLevels = (cfg.levels || []).length;
             if (currentLevel >= totalLevels){
-              fireworks();          // финальный фейерверк
+              fireworks();
               try{ winSound.currentTime=0; winSound.play().catch(e=>console.warn(e)); }catch(_){}
               showGameCompleteOverlay({
                 score,
@@ -1009,26 +1152,22 @@
                 missed: missedCorrect
               });
             } else {
-              // авто‑переход к следующему вопросу
               setTimeout(()=>{ startLevel(); }, 800);
             }
           }
         } else {
           wrongClicks++;
           streak = 0;
-
-          // Штраф за ошибку
-          const penalty = Math.max(5, Math.round(SPEED.basePts * 0.6));
+          const penalty = Math.max(1, Math.round(SPEED.basePts * 0.6));
           score = Math.max(0, score - penalty);
           hudScore.textContent = String(score);
-          popScore(el, '–'+penalty, true);
 
           try{
             wrongSound.currentTime=0;
-            wrongSound.play().catch(e=>console.warn('wrongSound',e));
+            wrongSound.play().catch(()=>{});
           }catch(_){}
-
           el.classList.add('tint-red','shake');
+          popScore(el, '−'+penalty, 'neg');
           setTimeout(()=> el.classList.remove('tint-red','shake'), 450);
         }
       });
@@ -1039,17 +1178,14 @@
       const STYLE = cfg.style || {};
       const content = el.querySelector('.content');
       if (content && content.style.getPropertyValue('--cw')) return;
-
       const shape = STYLE.shape || 'rounded';
       el.style.width = ''; el.style.height='';
       const r = content.getBoundingClientRect();
-
       const hasImageFrame =
         (Array.isArray(STYLE.bgImage) ? STYLE.bgImage.length > 0 : !!String(STYLE.bgImage||'').trim()) ||
         (Array.isArray(STYLE.bgImages) ? STYLE.bgImages.length > 0 : false);
       const padX = hasImageFrame ? 30 : 22;
       const padY = hasImageFrame ? 24 : 18;
-
       let W = Math.ceil(r.width + padX*2);
       let H = Math.ceil(r.height + padY*2);
       if (shape === 'circle' || shape === 'diamond' || shape === 'star'){
@@ -1063,18 +1199,15 @@
     function autoFitText(el, startPx, minPx){
       const span = el.querySelector('.content span');
       if(!span) return;
-
       let fs = startPx;
       const STYLE = cfg.style || {};
       const pad = STYLE.pad ?? 18;
       const maxW = el.clientWidth - pad*2;
       const maxH = el.clientHeight - pad*2;
-
       const fits = ()=> {
         const rr = span.getBoundingClientRect();
         return (rr.width <= maxW && rr.height <= maxH);
       };
-
       while (fs > minPx){
         span.style.fontSize = fs + 'px';
         if (fits()) break;
@@ -1086,9 +1219,8 @@
     function playPop(el){
       try{
         popSound.currentTime = 0;
-        popSound.play().catch(e=>console.warn('popSound',e));
+        popSound.play().catch(()=>{});
       }catch(_){}
-
       const r = el.getBoundingClientRect();
       for(let i=0;i<14;i++){
         const s = document.createElement('div');
@@ -1099,62 +1231,56 @@
         const dist = 40 + Math.random()*70;
         s.style.setProperty('--dx', (Math.cos(angle)*dist) + 'px');
         s.style.setProperty('--dy', (Math.sin(angle)*dist) + 'px');
-        s.style.animationDuration = (0.9 / (SPEED.basePts/12)) + 's';
         document.body.appendChild(s);
         setTimeout(()=> s.remove(), 1000);
       }
     }
 
-    function popScore(el, text, isNegative){
+    function popScore(el, text, mode){
       const r = el.getBoundingClientRect();
       const node = document.createElement('div');
       node.className = 'score-float';
       node.style.left = (r.left + r.width/2) + 'px';
       node.style.top  = (r.top + 8) + 'px';
-      node.style.color = isNegative ? '#ff4d4d' : 'var(--ui)';
+      if(mode === 'neg'){
+        node.style.color = '#ff4d4f';
+      }else{
+        node.style.color = 'var(--ui)';
+      }
       node.textContent = text;
       document.body.appendChild(node);
       setTimeout(()=> node.remove(), 900);
     }
 
-    function fireworks(count=16){
+    function fireworks(count=20){
       const W = window.innerWidth, H = window.innerHeight;
       for(let k=0;k<count;k++){
         const x = Math.random()*W*0.8 + W*0.1;
         const y = Math.random()*H*0.5 + H*0.1;
-        const parts = 24;
-        for(let i=0;i<parts;i++){
-          const p = document.createElement('div');
-          p.className='firework';
-          p.style.left = x+'px'; p.style.top = y+'px';
-          const angle = (Math.PI*2) * (i/parts) + Math.random()*0.2;
-          const dist = 60 + Math.random()*120;
-          p.style.setProperty('--tx', (Math.cos(angle)*dist)+'px');
-          p.style.setProperty('--ty', (Math.sin(angle)*dist)+'px');
-          p.style.background = `hsl(${Math.floor(Math.random()*360)},90%,70%)`;
-          document.body.appendChild(p);
-          setTimeout(()=> p.remove(), 900);
-        }
+        fireworksBurst(x,y,24);
       }
     }
 
-    // Фейерверк вокруг конкретного элемента (при правильном клике)
-    function fireworksAtElement(el, parts=20){
-      const r = el.getBoundingClientRect();
-      const x = r.left + r.width/2;
-      const y = r.top + r.height/2;
+    function fireworksBurst(x,y,parts){
       for(let i=0;i<parts;i++){
         const p = document.createElement('div');
         p.className='firework';
         p.style.left = x+'px'; p.style.top = y+'px';
-        const angle = (Math.PI*2) * (i/parts) + Math.random()*0.3;
-        const dist = 40 + Math.random()*80;
+        const angle = (Math.PI*2) * (i/parts) + Math.random()*0.2;
+        const dist = 40 + Math.random()*90;
         p.style.setProperty('--tx', (Math.cos(angle)*dist)+'px');
         p.style.setProperty('--ty', (Math.sin(angle)*dist)+'px');
         p.style.background = `hsl(${Math.floor(Math.random()*360)},90%,70%)`;
         document.body.appendChild(p);
         setTimeout(()=> p.remove(), 900);
       }
+    }
+
+    function fireworksAtElement(el, parts=16){
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width/2;
+      const y = r.top + r.height/2;
+      fireworksBurst(x,y,parts);
     }
   </script>
 </body>
