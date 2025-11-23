@@ -543,7 +543,7 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
 
     // сбор формы → JSON
    // сбор формы → JSON
-   // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ КВИЗА
+       // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ КВИЗА
     function splitLines(text){
       return (text || '')
         .split(/\r?\n/)
@@ -559,8 +559,9 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
         .filter(Boolean);
     }
 
-   // сбор формы → JSON для КВИЗА
+    // сбор формы → JSON (квиз: вопросы/ответы + общие настройки)
     function collectConfig(){
+      // 1) Забираем строки из трёх колонок
       const qLines = splitLines($('#qCol').value);
       const aLines = splitLines($('#aCol').value);
       const wLines = splitLines($('#wCol').value);
@@ -568,18 +569,20 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
 
       const maxLen = Math.max(qLines.length, aLines.length, wLines.length);
 
-      // общий пул всех правильных
+      // общий пул всех правильных ответов
       const allCorrect = [];
       for (let i = 0; i < aLines.length; i++){
         allCorrect.push(...splitByPipe(aLines[i]));
       }
 
       const levels = [];
-      for (let i = 0; i < maxLen; i++){
-        const q = (qLines[i] || '').trim();
-        const ansRaw = (aLines[i] || '').trim();
-        const wrongRaw = (wLines[i] || '').trim();
 
+      for (let i = 0; i < maxLen; i++){
+        const q       = (qLines[i] || '').trim();
+        const ansRaw  = (aLines[i] || '').trim();
+        const wrongRaw= (wLines[i] || '').trim();
+
+        // пустая строка вообще — пропускаем
         if (!q && !ansRaw) continue;
 
         const correct = splitByPipe(ansRaw);
@@ -592,6 +595,8 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
         }
 
         let wrong = splitByPipe(wrongRaw);
+
+        // если включена галка и нет своих wrong — берём из других правильных
         if (usePool && wrong.length === 0){
           wrong = allCorrect
             .filter(v => !correct.includes(v))
@@ -606,42 +611,61 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
         });
       }
 
-   function collectConfig(){
-  const cfg = {
-    language: $('#language').value,
-    font: $('#font').value,
-    fontSize: Math.max(10, parseInt($('#fontSize').value||'24',10)),
-    textColor: $('#textColor').value,
-    speed: Math.max(1, Math.min(10, parseInt($('#speed').value||'5',10))),
-    style: {
-      shape: $('#shape').value,
-      pad: Math.max(0, parseInt($('#pad').value||'22',10)),
-      bgColor: $('#bgColor').value,
-      bgImage: ($('#bgImages')?.value || '').trim(),
-      bgImages: parseBgList($('#bgImages')?.value || ''),
-      borderOn: $('#borderOn').checked,
-      borderColor: $('#borderColor').value,
-      borderWidth: Math.max(0, parseInt($('#borderWidth').value||'0', 10)),
-      shadow: $('#shadowOn').checked,
-      glow: $('#glowOn').checked,
-      glowColor: $('#glowColor').value,
-      fx3d: $('#fx3d').checked,
-      opacity: Math.max(0, Math.min(1, parseFloat($('#opacity').value||'1'))),
-      imgBox: Math.max(80, Math.min(260, parseInt($('#imgBox').value||'160',10))),
-    },
-    randomLevels: false,
-    start: {
-      title: ($('#startTitle')?.value || '').trim(),
-      btnText: ($('#startBtnText')?.value || '').trim()
-    },
-    direction: (['down','up'].includes($('#direction')?.value) ? $('#direction').value : 'down'),
-    finalFeedback: $('#finalFeedback').value.trim(),
-    globalTimer: Math.max(0, parseInt($('#globalTimer').value || '0', 10)),
-    levels
-  };
-  return cfg;
-}
+      // 2) Собираем общий cfg для snow_quiz
+      const cfg = {
+        language: $('#language').value,
+        font: $('#font').value,
+        fontSize: Math.max(10, parseInt($('#fontSize').value||'24',10)),
+        textColor: $('#textColor').value,
+        speed: Math.max(1, Math.min(10, parseInt($('#speed').value||'5',10))),
 
+        style: {
+          shape: $('#shape').value,
+          pad: Math.max(0, parseInt($('#pad').value||'22',10)),
+          bgColor: $('#bgColor').value,
+          bgImage: ($('#bgImages')?.value || '').trim(),
+          bgImages: parseBgList($('#bgImages')?.value || ''),
+          borderOn: $('#borderOn').checked,
+          borderColor: $('#borderColor').value,
+          borderWidth: Math.max(0, parseInt($('#borderWidth').value||'0', 10)),
+          shadow: $('#shadowOn').checked,
+          glow: $('#glowOn').checked,
+          glowColor: $('#glowColor').value,
+          fx3d: $('#fx3d').checked,
+          opacity: Math.max(0, Math.min(1, parseFloat($('#opacity').value||'1'))),
+          imgBox: Math.max(80, Math.min(260, parseInt($('#imgBox').value||'160',10))),
+        },
+
+        randomLevels: false,
+
+        start: {
+          title: ($('#startTitle')?.value || '').trim(),
+          btnText: ($('#startBtnText')?.value || '').trim()
+        },
+
+        direction: (['down','up'].includes($('#direction')?.value) ? $('#direction').value : 'down'),
+
+        finalFeedback: $('#finalFeedback').value.trim(),
+
+        // общий таймер на все вопросы (0 — без таймера)
+        globalTimer: Math.max(0, parseInt($('#globalTimer').value || '0', 10)),
+
+        levels
+      };
+
+      return cfg;
+    }
+
+    function validate(cfg){
+      if (!cfg.levels.length) return 'Добавьте хотя бы один вопрос.';
+      for (const [i,lv] of cfg.levels.entries()){
+        if (!lv.target) return `Строка ${i+1}: введите текст вопроса.`;
+        if (!Array.isArray(lv.correct) || lv.correct.length === 0){
+          return `Строка ${i+1}: укажите хотя бы один правильный ответ (через |).`;
+        }
+      }
+      return null;
+    }
 
     function validate(cfg){
       if (!cfg.levels.length) return 'Добавьте хотя бы один вопрос.';
@@ -747,7 +771,16 @@ document.body.style.fontFamily = $('#font').value + ", system-ui, sans-serif";
     $('#btnImage').onclick= (e)=>{ e.preventDefault(); const it=$('#previewItem'); it.dataset.mode='image'; updatePreview(); }
 
     // уровни
-    $('#addLevel').addEventListener('click', (e)=>{ e.preventDefault(); addLevel(); });
+    // уровни (в старой версии редактора). В новой разметке кнопки addLevel нет,
+    // поэтому просто не вешаем обработчик, если её нет.
+    const addLevelBtn = $('#addLevel');
+    if (addLevelBtn){
+      addLevelBtn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        addLevel();
+      });
+    }
+
     $('#saveBtn').addEventListener('click', publish);
     $('#testBtn').addEventListener('click', quickTest);
     $('#copyBtn').addEventListener('click', copyIframe);
