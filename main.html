@@ -24,7 +24,6 @@
       height:100%;
       overflow:hidden;
     }
-
     /* ===== HUD ===== */
     .hud{
       position:fixed;
@@ -54,7 +53,6 @@
     .timer{min-width:96px; text-align:center}
     .qnum{min-width:70px; text-align:center; font-size:14px;}
     .score{min-width:96px; text-align:center}
-
     .hud-center{
       flex:1;
       display:flex;
@@ -77,7 +75,6 @@
       text-overflow:ellipsis;
       transition:font-size .15s ease, opacity .15s ease;
     }
-
     /* ===== Оверлеи (старт / финал) ===== */
     .overlay{
       position:fixed; inset:0;
@@ -86,19 +83,40 @@
       color:#fff; z-index:20; gap:18px;
       pointer-events:auto;
     }
-    .overlay .panel{
-      background: rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:16px;
-      padding:22px 26px;
-      text-align:center;
-      box-shadow:0 0 26px var(--ui-soft);
-      min-width:min(92vw,560px);
+
+    /* Неоновая карточка — используется и для старта, и для финала */
+    .neon-card{
+      position:relative;
+      padding:4px;
+      border-radius:20px;
+      overflow:hidden;
+      animation:finalFadeIn .45s ease-out both;
     }
-    .overlay h2{
-      margin:6px 0 6px;
-      font-size:24px; font-weight:900; color:var(--ui);
-      text-shadow:0 0 20px var(--ui-soft);
+    .neon-glow{
+      position:absolute;
+      inset:0;
+      background:conic-gradient(
+        from 0deg,
+        #ff4d6a,#ffb347,#ffe65b,
+        #6bff8a,#5bdcff,#a56bff,#ff4dff,#ff4d6a
+      );
+      animation:glowSpin 5s linear infinite;
+      opacity:.9;
+    }
+    .neon-inner{
+      position:relative;
+      border-radius:16px;
+      background:rgba(10,10,25,.96);
+      padding:22px 26px;
+      min-width:min(92vw,360px);
+      color:#fff;
+      text-align:center;
+    }
+    .overlay-title{
+      font-size:24px;
+      margin:0 0 10px;
+      color:var(--ui);
+      text-shadow:0 0 18px var(--ui-soft);
     }
     .overlay p{ margin:0 0 8px; opacity:.9 }
     .overlay .row{ display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap }
@@ -155,7 +173,6 @@
       object-fit:contain;
       pointer-events:none;
     }
-
     .shape-rect    .bg{ border-radius:10px }
     .shape-rounded .bg{ border-radius:20px }
     .shape-circle  .bg{ border-radius:50% }
@@ -167,9 +184,7 @@
         21% 91%, 32% 57%, 2% 35%, 39% 35%
       );
     }
-
     .poly-border { box-shadow: inset 0 0 0 var(--bw, 1px) var(--bc, #fff); }
-
     .shape-diamond.fx-shadow .bg,
     .shape-star.fx-shadow .bg{
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));
@@ -183,7 +198,6 @@
     .shape-star.fx-3d .bg{
       filter: drop-shadow(7px 7px 16px rgba(0,0,0,.55));
     }
-
     .fx-shadow .bg{ box-shadow:0 10px 30px rgba(0,0,0,.55) }
     .fx-3d     .bg{ box-shadow: 7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
@@ -233,43 +247,28 @@
       to  { transform:translate(var(--tx), var(--ty)) scale(0.1); opacity:0 }
     }
 
-    /* Красный тинт при ошибке */
-    .tint-red .bg { animation: redTintOnly 550ms ease; }
+    /* Красный тинт + подёргивание при ошибке */
+    .wrong-hit .bg{
+      animation:
+        redTintOnly 550ms ease,
+        shakeWrong 450ms ease;
+    }
     @keyframes redTintOnly {
       0%   { filter: none; }
       15%  { filter: hue-rotate(-25deg) saturate(3) brightness(1.2) contrast(1.2); }
       50%  { filter: hue-rotate(-10deg) saturate(2.5) brightness(1.1) contrast(1.1); }
       100% { filter: none; }
     }
+    @keyframes shakeWrong{
+      0%   { transform:translateX(0); }
+      20%  { transform:translateX(-8px); }
+      40%  { transform:translateX(6px); }
+      60%  { transform:translateX(-4px); }
+      80%  { transform:translateX(4px); }
+      100% { transform:translateX(0); }
+    }
 
-    /* Финальное окно */
-    .final-card{
-      position:relative;
-      padding:4px;
-      border-radius:20px;
-      overflow:hidden;
-      animation:finalFadeIn .45s ease-out both;
-    }
-    .final-glow{
-      position:absolute;
-      inset:0;
-      background:conic-gradient(
-        from 0deg,
-        #ff4d6a,#ffb347,#ffe65b,
-        #6bff8a,#5bdcff,#a56bff,#ff4dff,#ff4d6a
-      );
-      animation:glowSpin 5s linear infinite;
-      opacity:.9;
-    }
-    .final-inner{
-      position:relative;
-      border-radius:16px;
-      background:rgba(10,10,25,.96);
-      padding:22px 26px;
-      min-width:min(92vw,360px);
-      color:#fff;
-      text-align:center;
-    }
+    /* Финальное окно (использует те же неон‑классы) */
     .final-title{
       font-size:26px;
       margin:0 0 10px;
@@ -317,7 +316,6 @@
       to  { opacity:1; transform:translateY(0) scale(1);}
     }
   </style>
-
   <script>
     function loadGoogleFont(fontName){
       if(!fontName) return;
@@ -349,7 +347,6 @@
 
   <!-- MathJax -->
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-
   <script>
     /* ===== Локализация ===== */
     const I18N = {
@@ -361,7 +358,7 @@
         hits:"Попаданий", wrong:"Мимо", missed:"Ушло правильных", total:"Итого",
         finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
       },
-      math:{ /* как ru */ 
+      math:{
         startTitle:"Игра «Падающие элементы» (Математика)",
         startBtn:"Начать", restartBtn:"Играть снова", catchAll:"Поймай все",
         level:n=>`Уровень ${n}`, levelOf:(n,t)=>`Уровень ${n} из ${t}`,
@@ -375,7 +372,6 @@
       const dict = I18N[lang]||I18N.ru; const v = dict[key];
       return (typeof v==="function")?v(...args):(v??key);
     }
-
     const $ = sel => document.querySelector(sel);
     const rnd = (a,b)=> a + Math.random()*(b-a);
     const clamp = (v,min,max)=> Math.max(min, Math.min(max,v));
@@ -400,7 +396,7 @@
     const hudScore = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
 
-    /* ===== Звук (файлы поп-клик-вин должны лежать рядом с HTML) ===== */
+    /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
     const winSound   = new Audio("win.mp3");
@@ -438,16 +434,13 @@
         showFatal("Load error", `Ошибка загрузки настроек: ${e.message}\nПроверь публикацию в texts/data.`);
         return;
       }
-
       LANG = (cfg.language || 'ru').toLowerCase();
-
       if(cfg.font){
         loadGoogleFont(cfg.font);
       }
       if(cfg.questionFont){
         loadGoogleFont(cfg.questionFont);
       }
-
       const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
       const rgb = Object.values(hexToRgb(uiColor)).join(',');
       document.documentElement.style.setProperty('--ui', uiColor);
@@ -455,9 +448,7 @@
       if (cfg.style && cfg.style.glowColor){
         document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
       }
-
       if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
-
       setupBackgrounds();
       updateHUD(1, (cfg.levels||[]).length||0);
       showStartOverlay();
@@ -493,32 +484,27 @@
 
     /* ===== HUD / Оверлеи ===== */
     let overlayNode = null;
-
     function updateHUD(current, total, needed){
       if (hudQNum){
         hudQNum.textContent = total ? `${current} / ${total}` : `${current}`;
       }
-      // вопрос пишем отдельно в setQuestionText
     }
 
     function setQuestionText(text){
       if (!hudQuestion) return;
       const lang = (cfg.language || 'ru').toLowerCase();
       const isMath = (lang === 'math');
-
       const qFont = cfg.questionFont || cfg.font || 'Rubik';
       const baseSize = Number(cfg.questionFontSize || 26);
-
       if (isMath && text){
         hudQuestion.textContent = `\\(${text}\\)`;
         MathJax.typesetPromise([hudQuestion]);
       } else {
         hudQuestion.textContent = text || '';
       }
-
       const len = (text || '').length;
       let size = baseSize;
-      if (!cfg.questionFontSize){ // авто‑уменьшение только если размер не задан явно
+      if (!cfg.questionFontSize){
         if (len > 110) size = 18;
         else if (len > 60) size = 22;
       }
@@ -530,9 +516,12 @@
       const ov = document.createElement('div');
       ov.className = 'overlay';
       ov.innerHTML = `
-        <div class="panel">
-          <h2>${title}</h2>
-          <p style="white-space:pre-wrap">${message}</p>
+        <div class="neon-card">
+          <div class="neon-glow"></div>
+          <div class="neon-inner">
+            <h2 class="overlay-title">${title}</h2>
+            <p style="white-space:pre-wrap">${message}</p>
+          </div>
         </div>`;
       document.body.appendChild(ov);
     }
@@ -541,24 +530,24 @@
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
       overlayNode.className = 'overlay';
-      const total = (cfg.levels||[]).length || 0;
       const targetVal = cfg.levels?.[0]?.target || "";
       const isMath = (cfg.language || '') === 'math';
       const targetHtml = targetVal ? (isMath ? `\\(${targetVal}\\)` : targetVal) : "";
-
       const title  = (cfg.start && typeof cfg.start.title === 'string' && cfg.start.title.trim())
                      ? cfg.start.title.trim()
                      : t(LANG,'startTitle');
       const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
                      ? cfg.start.btnText.trim()
                      : t(LANG,'startBtn');
-
       overlayNode.innerHTML = `
-        <div class="panel">
-          <h2>${title}</h2>
-          <p>${t(LANG,'catchAll')} ${targetHtml}</p>
-          <div class="row" style="margin-top:14px">
-            <button id="btnStart">${btnTxt}</button>
+        <div class="neon-card">
+          <div class="neon-glow"></div>
+          <div class="neon-inner">
+            <h2 class="overlay-title">${title}</h2>
+            <p>${t(LANG,'catchAll')} ${targetHtml}</p>
+            <div class="row" style="margin-top:14px">
+              <button id="btnStart">${btnTxt}</button>
+            </div>
           </div>
         </div>`;
       document.body.appendChild(overlayNode);
@@ -583,9 +572,9 @@
       const w  = stats?.wrong ?? wrongClicks;
       const m  = stats?.missed ?? missedCorrect;
       overlayNode.innerHTML = `
-        <div class="final-card">
-          <div class="final-glow"></div>
-          <div class="final-inner">
+        <div class="neon-card">
+          <div class="neon-glow"></div>
+          <div class="neon-inner">
             <h2 class="final-title">${t(LANG,'gameComplete')}</h2>
             ${
               custom
@@ -632,7 +621,6 @@
       missedCorrect = 0;
       streak = 0;
       hudScore.textContent = '0';
-
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
         globalTimerHandle = null;
@@ -663,7 +651,6 @@
       } else {
         hudTimer.textContent = '∞';
       }
-
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
@@ -677,14 +664,12 @@
       const s = (sec % 60).toString().padStart(2,'0');
       return `${m}:${s}`;
     }
-
     function stopSpawning(){
       if (spawnerHandle){
         clearTimeout(spawnerHandle);
         spawnerHandle = null;
       }
     }
-
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
@@ -706,7 +691,6 @@
         });
         return;
       }
-
       const game = document.getElementById('game');
       currentQuestion = levels[currentLevel - 1] || {};
       const correctArr = Array.isArray(currentQuestion.correct)
@@ -714,10 +698,8 @@
         : [];
       neededCorrect = correctArr.length;
       foundCorrect = new Set();
-
       updateHUD(currentLevel, levels.length, neededCorrect);
       setQuestionText(currentQuestion.target || currentQuestion.question || '');
-
       stopSpawning();
       clearItems();
 
@@ -736,6 +718,19 @@
       let interval = (fallTimeSec / targetActive) * 1000;
       interval = clamp(interval, 300, 2200);
 
+      /* bag‑рандомайзер: проходим по всем элементам в случайном порядке,
+         затем мешаем заново — меньше подряд одинаковых */
+      let bag = shuffleCopy(pool);
+      let bagIndex = 0;
+
+      function nextFromBag(){
+        if (bagIndex >= bag.length){
+          bag = shuffleCopy(pool);
+          bagIndex = 0;
+        }
+        return bag[bagIndex++];
+      }
+
       function spawnNext(){
         if (!running) return;
         const activeNow = document.querySelectorAll('.item').length;
@@ -743,7 +738,7 @@
           spawnerHandle = setTimeout(spawnNext, 120);
           return;
         }
-        const obj = pool[Math.floor(Math.random() * pool.length)];
+        const obj = nextFromBag();
         drop(obj);
         const jitter = interval * (0.9 + Math.random() * 0.2);
         spawnerHandle = setTimeout(spawnNext, Math.max(120, jitter));
@@ -890,7 +885,6 @@
 
       fitGeometryBox(el);
       autoFitText(el, FONT_SIZE, 12);
-
       if ((cfg.language||'') === 'math'){
         MathJax.typesetPromise([el]).then(()=>{
           fitGeometryBox(el);
@@ -901,7 +895,6 @@
       const vel = SPEED.vel;
       const swayAmp = rnd(6, 22);
       const swayFreq = rnd(0.003, 0.008);
-
       function adjustX(){
         if (!(DIR === 'down' || DIR === 'up')) return;
         const W = el.offsetWidth;
@@ -911,7 +904,6 @@
         x = clamp(x, min, max);
         el.style.left = x + 'px';
       }
-
       let t = 0;
       let alive = true;
       adjustX();
@@ -949,10 +941,11 @@
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
-        } else { // right
+        } else {
           x -= vel;
           const dy = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
+          el.style.transform = `translateY(${dy}px)`;
           if (x < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -979,16 +972,15 @@
           foundCorrect.add(el.dataset.value);
           el.classList.add('caught');
           playPop(el);
-          popScore(el, '+'+pts);
+          popScore(el, '+'+pts, false);
           setTimeout(()=> el.remove(), 420);
-
           if (foundCorrect.size >= neededCorrect){
             stopSpawning();
             clearItems();
             const totalLevels = (cfg.levels || []).length;
             if (currentLevel >= totalLevels){
               fireworks();
-              try{ winSound.currentTime=0; winSound.play().catch(e=>console.warn(e)); }catch(_){}
+              try{ winSound.currentTime=0; winSound.play(); }catch(_){}
               showGameCompleteOverlay({
                 score,
                 hits,
@@ -996,19 +988,23 @@
                 missed: missedCorrect
               });
             } else {
-              // ⚡ авто‑переход к следующему вопросу
               setTimeout(()=>{ startLevel(); }, 800);
             }
           }
         } else {
           wrongClicks++;
           streak = 0;
+          const penalty = Math.max(1, Math.round(SPEED.basePts / 2));
+          score -= penalty;
+          if (score < 0) score = 0;
+          hudScore.textContent = String(score);
           try{
             wrongSound.currentTime=0;
             wrongSound.play().catch(e=>console.warn('wrongSound',e));
           }catch(_){}
-          el.classList.add('tint-red');
-          setTimeout(()=> el.classList.remove('tint-red'), 400);
+          el.classList.add('wrong-hit');
+          setTimeout(()=> el.classList.remove('wrong-hit'), 450);
+          popScore(el, '-'+penalty, true);
         }
       });
     }
@@ -1019,7 +1015,6 @@
       const content = el.querySelector('.content');
       if (content && content.style.getPropertyValue('--cw')) return;
       const shape = STYLE.shape || 'rounded';
-
       el.style.width = ''; el.style.height='';
       const r = content.getBoundingClientRect();
       const hasImageFrame =
@@ -1029,7 +1024,6 @@
       const padY = hasImageFrame ? 24 : 18;
       let W = Math.ceil(r.width + padX*2);
       let H = Math.ceil(r.height + padY*2);
-
       if (shape === 'circle' || shape === 'diamond' || shape === 'star'){
         const S = Math.max(W, H);
         W = H = Math.ceil(S + 16);
@@ -1079,13 +1073,13 @@
       }
     }
 
-    function popScore(el, text){
+    function popScore(el, text, isPenalty){
       const r = el.getBoundingClientRect();
       const node = document.createElement('div');
       node.className = 'score-float';
       node.style.left = (r.left + r.width/2) + 'px';
       node.style.top  = (r.top + 8) + 'px';
-      node.style.color = 'var(--ui)';
+      node.style.color = isPenalty ? '#ff4d6a' : 'var(--ui)';
       node.textContent = text;
       document.body.appendChild(node);
       setTimeout(()=> node.remove(), 900);
