@@ -30,7 +30,7 @@
       left:12px; top:12px; right:12px;
       display:flex;
       gap:12px;
-      align-items:flex-start; /* вопрос сверху по центру */
+      align-items:flex-start;
       justify-content:space-between;
       font-weight:700;
       z-index:10;
@@ -126,7 +126,7 @@
       transform:translateY(-1px);
       box-shadow:0 16px 40px rgba(0,0,0,.75);
     }
-    /* ===== Падающие элементы ===== */
+    /* ===== Падающие / плавающие элементы ===== */
     .item{
       position:absolute;
       top:-160px; left:0;
@@ -147,6 +147,7 @@
       background-position:center !important;
       background-repeat:no-repeat !important;
       background-size:contain !important;
+      transition:box-shadow .22s ease;
     }
     .item .content{
       position:relative; z-index:1;
@@ -199,6 +200,12 @@
     .fx-3d     .bg{ box-shadow:7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
     .fx-border .bg{ border-style:solid }
+
+    /* Подсветка при hover в режиме random */
+    .item.rand-hover .bg{
+      box-shadow:0 0 22px var(--glow, #70e0ff), 0 0 38px rgba(0,0,0,.8);
+    }
+
     /* Поп при ловле — СИЛЬНЕЕ */
     .caught{
       animation:caughtBoom .6s cubic-bezier(.2,1.2,.4,1) forwards;
@@ -336,7 +343,7 @@
   <!-- HUD -->
   <div class="hud">
     <div class="hud-left">
-      <div class="badge timer hidden" id="hudTimer">00:00</div>
+      <div class="badge timer" id="hudTimer">00:00</div>
     </div>
     <div class="hud-center">
       <div class="badge questionBadge">
@@ -395,10 +402,10 @@
     const hudTimer    = $('#hudTimer');
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
-    // до старта игры не показываем рамку счётчика
-    if (hudScore) {
-      hudScore.classList.add('hidden');
-    }
+
+    // До старта игры не показываем рамку счётчика очков
+    if (hudScore) hudScore.classList.add('hidden');
+
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
@@ -420,6 +427,7 @@
     let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
     /* ===== ФОНЫ ===== */
     let bgImgEl = null;
+
     (async function boot(){
       if(!GAME_ID){
         showFatal("No id", "Не передан id в строке запроса.");
@@ -448,6 +456,7 @@
       setupBackgrounds();
       showStartOverlay();
     })();
+
     function setupBackgrounds(){
       const list = Array.isArray(cfg?.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
       if (!list.length){
@@ -475,6 +484,7 @@
         _startLevel();
       };
     }
+
     /* ===== HUD / Оверлеи ===== */
     let overlayNode = null;
     function setQuestionText(text){
@@ -524,11 +534,17 @@
       const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
                      ? cfg.start.btnText.trim()
                      : t(LANG,'startBtn');
+      const subtitle =
+        (cfg.start && typeof cfg.start.subtitle === 'string' && cfg.start.subtitle.trim())
+          ? cfg.start.subtitle.trim()
+          : ((LANG === 'ru' || LANG === 'math')
+              ? "Нажмите, чтобы начать игру."
+              : "Click to start the game.");
       overlayNode.innerHTML = `
         <div class="panel">
           <h2>${title}</h2>
           <p style="opacity:.8; font-size:15px; margin-top:4px">
-            Нажмите, чтобы начать игру.
+            ${subtitle}
           </p>
           <div class="row" style="margin-top:14px">
             <button id="btnStart">${btnTxt}</button>
@@ -573,6 +589,7 @@
       document.body.appendChild(overlayNode);
       $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
     }
+
     /* ===== Геймплей ===== */
     function computeSpeedParams(S){
       const s = clamp(Number(S||5), 1, 10);
@@ -591,16 +608,17 @@
     }
     function startGame(){
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-      // как только игра реально стартует — показываем счётчик
-      if (hudScore) {
-        hudScore.classList.remove('hidden');
-      }
+
+      // показываем счётчик, когда игра действительно началась
+      if (hudScore) hudScore.classList.remove('hidden');
+
       score = 0;
       hits = 0;
       wrongClicks = 0;
       missedCorrect = 0;
       streak = 0;
       hudScore.textContent = '0';
+
       // таймер
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
@@ -608,7 +626,8 @@
       }
       globalTimeLeft = Number(cfg?.globalTimer || 0);
       if (globalTimeLeft > 0){
-        hudTimer.classList.remove('hidden');
+        hudTimer.style.opacity = '1';
+        hudTimer.style.visibility = 'visible';
         hudTimer.textContent = formatTime(globalTimeLeft);
         globalTimerHandle = setInterval(()=>{
           if (!running) return;
@@ -631,8 +650,12 @@
           }
         }, 1000);
       } else {
-        hudTimer.classList.add('hidden');
+        // таймера нет: прячем визуально, но оставляем место в макете
+        hudTimer.textContent = "";
+        hudTimer.style.opacity = '0';
+        hudTimer.style.visibility = 'hidden';
       }
+
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
@@ -647,13 +670,14 @@
     }
     function stopSpawning(){
       if (spawnerHandle){
-        clearInterval(spawnerHandle);   // interval
+        clearInterval(spawnerHandle);
         spawnerHandle = null;
       }
     }
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
+
     function startLevel(){
       const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
       currentLevel++;
@@ -681,6 +705,7 @@
       setQuestionText(currentQuestion.target || currentQuestion.question || '');
       stopSpawning();
       clearItems();
+
       const correct = correctArr.map(v => ({ val: v, good: true }));
       const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
       const pool = [...correct, ...wrong];
@@ -689,24 +714,38 @@
       const uniqueValues = [...new Set(pool.map(p => p.val))];
       const allowDupOnScreen = uniqueValues.length === 1;
 
+      const DIR_MODE = (cfg.direction || 'down');
+      const isRandomMode = DIR_MODE === 'random';
+
       const gh  = game.clientHeight || 600;
       const fps = 60;
       const fallDistPx  = gh + 320;
-      const fallTimeSec = fallDistPx / (SPEED.vel * fps);
+
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
 
-      const dir = (cfg.direction || 'down');
-      const isRandomDir = (dir === 'random');
+      let fallTimeSec;
+      if (isRandomMode){
+        // "время жизни" одной штуки на экране, 6–10 секунд
+        fallTimeSec = 10 - sNorm * 4;
+      } else {
+        fallTimeSec = fallDistPx / (SPEED.vel * fps);
+      }
 
-      const targetActive = isRandomDir
-        ? 5 + Math.round(sNorm * 3) // 5–8
-        : 3 + Math.round(sNorm * 3); // 3–6
-
-      const baseMax = isRandomDir ? 8 : 4;  // максимум объектов на экране
-      const maxActive = baseMax;
+      let targetActive, maxActive;
+      if (isRandomMode){
+        // в рандом‑режиме можно больше объектов
+        targetActive = 5 + Math.round(sNorm * 3); // 5–8
+        maxActive    = targetActive + 1;
+      } else {
+        targetActive = 3 + Math.round(sNorm * 3); // 3–6
+        maxActive    = 4;                         // жёсткий максимум 4
+      }
 
       let interval = (fallTimeSec / targetActive) * 1000;
-      interval = clamp(interval, 420, 2000);
+      interval = clamp(interval,
+        isRandomMode ? 380 : 420,
+        isRandomMode ? 1600 : 2000
+      );
 
       let lastSpawnValue = null;
       let lastLane = -1;
@@ -727,7 +766,6 @@
         }
         const poolLen = pool.length;
         if (!poolLen) return;
-
         let chosen = null;
         let tries = 0;
         while(tries < 30){
@@ -749,29 +787,24 @@
         lastSpawnValue = chosen.val;
 
         const gameW = game.clientWidth || 800;
-
-        if (isRandomDir){
-          // позицию берём прямо внутри drop (случайно по полю)
-          drop(chosen, null);
-        } else {
-          // нормальные «дорожки» сверху
-          const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
-          const laneWidth = gameW / laneCount;
-          let lane = Math.floor(Math.random()*laneCount);
-          if (laneCount > 1 && lane === lastLane){
-            lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
-          }
-          lastLane = lane;
-          const xMin = lane * laneWidth + 18;
-          const xMax = (lane+1)*laneWidth - 18;
-          const spawnX = rnd(xMin, xMax);
-          drop(chosen, spawnX);
+        // динамическое количество дорожек, но не меньше 3 и не больше 6
+        const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
+        const laneWidth = gameW / laneCount;
+        let lane = Math.floor(Math.random()*laneCount);
+        if (laneCount > 1 && lane === lastLane){
+          lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
         }
+        lastLane = lane;
+        const xMin = lane * laneWidth + 18;
+        const xMax = (lane+1)*laneWidth - 18;
+        const spawnX = rnd(xMin, xMax);
+        drop(chosen, spawnX);
       }
+
       spawnerHandle = setInterval(spawnTick, interval);
     }
 
-    /* ===== Элемент: создание / падение / клик ===== */
+    /* ===== Элемент: создание / движение / клик ===== */
     function drop(obj, forcedX){
       const game = document.getElementById('game');
       const STYLE = cfg.style || {};
@@ -892,18 +925,19 @@
       }
 
       const DIR = (cfg.direction || 'down');
-      const gw = game.clientWidth || window.innerWidth;
-      const gh = game.clientHeight || window.innerHeight;
-      let x, y;
+      const isRandom = DIR === 'random';
+
+      const gw = game.clientWidth;
+      const gh = game.clientHeight;
       const MARGIN = 20;
 
-      if (DIR === 'down' || DIR === 'up') {
+      let x, y;
+      if (isRandom){
+        x = (typeof forcedX === 'number') ? forcedX : rnd(MARGIN, gw - MARGIN);
+        y = rnd(70, Math.max(80, gh - 160));
+      } else if (DIR === 'down' || DIR === 'up') {
         x = (typeof forcedX === 'number') ? forcedX : rnd(MARGIN, gw - MARGIN);
         y = (DIR === 'down') ? -160 : (gh + 160);
-      } else if (DIR === 'random') {
-        // режим светлячков: сразу внутри поля
-        x = rnd(MARGIN, gw - MARGIN - 200);
-        y = rnd(MARGIN, gh - MARGIN - 200);
       } else {
         y = rnd(16, gh - 140);
         x = (DIR === 'left') ? -220 : (gw + 220);
@@ -915,7 +949,6 @@
 
       fitGeometryBox(el);
       autoFitText(el, FONT_SIZE, 12);
-
       if ((cfg.language||'') === 'math'){
         MathJax.typesetPromise([el]).then(()=>{
           fitGeometryBox(el);
@@ -926,14 +959,28 @@
       const vel = SPEED.vel;
       const swayAmp = rnd(6, 22);
       const swayFreq = rnd(0.003, 0.008);
-
-      // для random — отдельные скорости по X/Y
-      let dx = (Math.random()*2 - 1) * vel;
-      let dy = (Math.random()*2 - 1) * vel;
-
       let t = 0;
       let alive = true;
-      let lifeFrames = 0; // чтобы не жили вечно
+
+      // для random-режима
+      let dx = 0, dy = 0;
+      let life = 0;
+      const LIFE_LIMIT = 14 * 60; // ~14 секунд при 60fps
+      let hover = false;
+
+      if (isRandom){
+        const base = vel * 0.22;
+        dx = (Math.random()*2 - 1) * base;
+        dy = (Math.random()*2 - 1) * base;
+        el.addEventListener('mouseenter', ()=>{
+          hover = true;
+          el.classList.add('rand-hover');
+        });
+        el.addEventListener('mouseleave', ()=>{
+          hover = false;
+          el.classList.remove('rand-hover');
+        });
+      }
 
       function adjustX(){
         if (!(DIR === 'down' || DIR === 'up')) return;
@@ -949,20 +996,61 @@
       function step(){
         if(!alive) return;
 
-        // даём анимациям caught/shake спокойно проигрываться
+        // пока анимация caught/shake — даём ей доиграть
         if (el.classList.contains('caught') || el.classList.contains('shake')){
           requestAnimationFrame(step);
           return;
         }
 
         t += 1;
-        lifeFrames++;
 
-        if (DIR === 'down'){
+        if (isRandom){
+          const base = vel * 0.22;
+          const slow = hover ? 0.35 : 1;
+          x += dx * slow;
+          y += dy * slow;
+
+          const w = el.offsetWidth || 120;
+          const h = el.offsetHeight || 80;
+
+          if (x < MARGIN){
+            x = MARGIN;
+            dx = Math.abs(dx) + (Math.random()-0.5)*base*0.2;
+          }
+          if (x > gw - w - MARGIN){
+            x = gw - w - MARGIN;
+            dx = -Math.abs(dx) + (Math.random()-0.5)*base*0.2;
+          }
+          if (y < MARGIN){
+            y = MARGIN;
+            dy = Math.abs(dy) + (Math.random()-0.5)*base*0.2;
+          }
+          if (y > gh - h - MARGIN){
+            y = gh - h - MARGIN;
+            dy = -Math.abs(dy) + (Math.random()-0.5)*base*0.2;
+          }
+
+          if (Math.abs(dx) < base*0.25) dx += (Math.random()-0.5)*base*0.5;
+          if (Math.abs(dy) < base*0.25) dy += (Math.random()-0.5)*base*0.5;
+          const maxVel = base*1.5;
+          dx = clamp(dx, -maxVel, maxVel);
+          dy = clamp(dy, -maxVel, maxVel);
+
+          el.style.left = x+'px';
+          el.style.top  = y+'px';
+
+          life++;
+          if (life > LIFE_LIMIT){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove();
+            return;
+          }
+        } else if (DIR === 'down'){
           y += vel;
-          const ddx = Math.sin(t*swayFreq) * swayAmp;
+          const dxSwing = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${ddx}px)`;
+          el.style.transform = `translateX(${dxSwing}px)`;
           if (y > gh + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -970,9 +1058,9 @@
           }
         } else if (DIR === 'up'){
           y -= vel;
-          const ddx = Math.sin(t*swayFreq) * swayAmp;
+          const dxSwing = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${ddx}px)`;
+          el.style.transform = `translateX(${dxSwing}px)`;
           if (y < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -980,60 +1068,20 @@
           }
         } else if (DIR === 'left'){
           x += vel;
-          const dy2 = Math.sin(t*swayFreq) * swayAmp;
+          const dySwing = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dy2}px)`;
+          el.style.transform = `translateY(${dySwing}px)`;
           if (x > gw + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
-        } else if (DIR === 'right'){
+        } else { // right
           x -= vel;
-          const dy2 = Math.sin(t*swayFreq) * swayAmp;
+          const dySwing = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dy2}px)`;
+          el.style.transform = `translateY(${dySwing}px)`;
           if (x < -200){
-            alive = false;
-            if (el.dataset.good === '1') missedCorrect++;
-            el.remove(); return;
-          }
-        } else if (DIR === 'random'){
-          // светлячки: плавают и отскакивают от краёв
-          const W = el.offsetWidth  || 160;
-          const H = el.offsetHeight || 100;
-
-          x += dx;
-          y += dy;
-
-          if (x < MARGIN){
-            x = MARGIN;
-            dx = Math.abs(dx) * (0.7 + Math.random()*0.6);
-          }
-          if (x > gw - W - MARGIN){
-            x = gw - W - MARGIN;
-            dx = -Math.abs(dx) * (0.7 + Math.random()*0.6);
-          }
-          if (y < MARGIN){
-            y = MARGIN;
-            dy = Math.abs(dy) * (0.7 + Math.random()*0.6);
-          }
-          if (y > gh - H - MARGIN){
-            y = gh - H - MARGIN;
-            dy = -Math.abs(dy) * (0.7 + Math.random()*0.6);
-          }
-
-          // лёгкое "дрожание", чтобы не залипали
-          dx += (Math.random()-0.5)*0.08;
-          dy += (Math.random()-0.5)*0.08;
-          dx = clamp(dx, -vel*1.2, vel*1.2);
-          dy = clamp(dy, -vel*1.2, vel*1.2);
-
-          el.style.left = x + 'px';
-          el.style.top  = y + 'px';
-
-          // ограничиваем жизнь по времени (~12 сек на 60fps)
-          if (lifeFrames > 60*12){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
@@ -1086,7 +1134,6 @@
 
     function finishLevelAfter(clickedEl){
       stopSpawning();
-      // небольшая пауза, чтобы был виден «бум» правильного ответа
       setTimeout(()=>{
         const totalLevels = (cfg.levels || []).length;
         if (currentLevel >= totalLevels){
