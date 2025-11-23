@@ -30,7 +30,7 @@
       left:12px; top:12px; right:12px;
       display:flex;
       gap:12px;
-      align-items:flex-start;
+      align-items:flex-start; /* вопрос сверху по центру */
       justify-content:space-between;
       font-weight:700;
       z-index:10;
@@ -40,6 +40,9 @@
       display:flex;
       gap:8px;
       align-items:center;
+      /* фиксированная ширина слева, чтобы вопрос НЕ съезжал,
+         даже если таймера нет */
+      min-width:96px;
     }
     /* glass‑prism стиль для ВСЕХ рамок */
     .badge,
@@ -126,7 +129,7 @@
       transform:translateY(-1px);
       box-shadow:0 16px 40px rgba(0,0,0,.75);
     }
-    /* ===== Падающие / плавающие элементы ===== */
+    /* ===== Падающие элементы / random ===== */
     .item{
       position:absolute;
       top:-160px; left:0;
@@ -137,6 +140,7 @@
       min-width:120px; min-height:80px;
       padding:0;
       user-select:none; cursor:pointer;
+      transition:transform .12s ease; /* для лёгкого scale в random */
     }
     .item .bg{
       position:absolute; inset:0;
@@ -147,7 +151,6 @@
       background-position:center !important;
       background-repeat:no-repeat !important;
       background-size:contain !important;
-      transition:box-shadow .22s ease;
     }
     .item .content{
       position:relative; z-index:1;
@@ -200,12 +203,6 @@
     .fx-3d     .bg{ box-shadow:7px 7px 20px rgba(0,0,0,.55), inset -5px -5px 12px rgba(255,255,255,.22) }
     .fx-glow   .bg{ box-shadow:0 0 18px var(--glow, #00f0ff), 0 0 28px rgba(0,0,0,.25) }
     .fx-border .bg{ border-style:solid }
-
-    /* Подсветка при hover в режиме random */
-    .item.rand-hover .bg{
-      box-shadow:0 0 22px var(--glow, #70e0ff), 0 0 38px rgba(0,0,0,.8);
-    }
-
     /* Поп при ловле — СИЛЬНЕЕ */
     .caught{
       animation:caughtBoom .6s cubic-bezier(.2,1.2,.4,1) forwards;
@@ -343,7 +340,7 @@
   <!-- HUD -->
   <div class="hud">
     <div class="hud-left">
-      <div class="badge timer" id="hudTimer">00:00</div>
+      <div class="badge timer hidden" id="hudTimer">00:00</div>
     </div>
     <div class="hud-center">
       <div class="badge questionBadge">
@@ -366,7 +363,8 @@
         time:"Время", score:"Счёт",
         gameComplete:"Игра пройдена!",
         hits:"Попаданий", wrong:"Ошибок", missed:"Пропущено правильных",
-        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!",
+        startHint:"Нажмите, чтобы начать игру."
       },
       math:{
         startTitle:"Игра «Падающие элементы» (Математика)",
@@ -375,7 +373,18 @@
         time:"Время", score:"Счёт",
         gameComplete:"Игра пройдена!",
         hits:"Попаданий", wrong:"Ошибок", missed:"Пропущено правильных",
-        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!"
+        finalFeedbackTitle:"Молодец!", defaultFinalFeedback:"Отличная работа!",
+        startHint:"Нажмите, чтобы начать игру."
+      },
+      en:{
+        startTitle:"Falling Items Game",
+        startBtn:"Start",
+        restartBtn:"Play again",
+        time:"Time", score:"Score",
+        gameComplete:"Game completed!",
+        hits:"Hits", wrong:"Mistakes", missed:"Missed correct",
+        finalFeedbackTitle:"Well done!", defaultFinalFeedback:"Great job!",
+        startHint:"Click to start the game."
       }
     };
     function t(lang,key,...args){
@@ -403,8 +412,10 @@
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
 
-    // До старта игры не показываем рамку счётчика очков
-    if (hudScore) hudScore.classList.add('hidden');
+    // до старта игры не показываем рамку счётчика
+    if (hudScore) {
+      hudScore.classList.add('hidden');
+    }
 
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
@@ -443,6 +454,7 @@
         return;
       }
       LANG = (cfg.language || 'ru').toLowerCase();
+      if (!I18N[LANG] && LANG!=='math') LANG = 'ru';
       if(cfg.font)         loadGoogleFont(cfg.font);
       if(cfg.questionFont) loadGoogleFont(cfg.questionFont);
       const uiColor = (cfg.style && (cfg.style.borderColor || cfg.style.glowColor)) || '#ffd700';
@@ -453,6 +465,13 @@
         document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
       }
       if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
+
+      // если в конфиге нет таймера — пузырь таймера вообще не нужен
+      const gTime = Number(cfg?.globalTimer || 0);
+      if (!gTime && hudTimer){
+        hudTimer.parentNode && hudTimer.parentNode.removeChild(hudTimer);
+      }
+
       setupBackgrounds();
       showStartOverlay();
     })();
@@ -484,7 +503,6 @@
         _startLevel();
       };
     }
-
     /* ===== HUD / Оверлеи ===== */
     let overlayNode = null;
     function setQuestionText(text){
@@ -534,17 +552,12 @@
       const btnTxt = (cfg.start && typeof cfg.start.btnText === 'string' && cfg.start.btnText.trim())
                      ? cfg.start.btnText.trim()
                      : t(LANG,'startBtn');
-      const subtitle =
-        (cfg.start && typeof cfg.start.subtitle === 'string' && cfg.start.subtitle.trim())
-          ? cfg.start.subtitle.trim()
-          : ((LANG === 'ru' || LANG === 'math')
-              ? "Нажмите, чтобы начать игру."
-              : "Click to start the game.");
+      const hint   = t(LANG,'startHint');
       overlayNode.innerHTML = `
         <div class="panel">
           <h2>${title}</h2>
           <p style="opacity:.8; font-size:15px; margin-top:4px">
-            ${subtitle}
+            ${hint}
           </p>
           <div class="row" style="margin-top:14px">
             <button id="btnStart">${btnTxt}</button>
@@ -589,7 +602,6 @@
       document.body.appendChild(overlayNode);
       $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
     }
-
     /* ===== Геймплей ===== */
     function computeSpeedParams(S){
       const s = clamp(Number(S||5), 1, 10);
@@ -609,8 +621,10 @@
     function startGame(){
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
 
-      // показываем счётчик, когда игра действительно началась
-      if (hudScore) hudScore.classList.remove('hidden');
+      // как только игра реально стартует — показываем счётчик
+      if (hudScore) {
+        hudScore.classList.remove('hidden');
+      }
 
       score = 0;
       hits = 0;
@@ -625,9 +639,8 @@
         globalTimerHandle = null;
       }
       globalTimeLeft = Number(cfg?.globalTimer || 0);
-      if (globalTimeLeft > 0){
-        hudTimer.style.opacity = '1';
-        hudTimer.style.visibility = 'visible';
+      if (globalTimeLeft > 0 && hudTimer){
+        hudTimer.classList.remove('hidden');
         hudTimer.textContent = formatTime(globalTimeLeft);
         globalTimerHandle = setInterval(()=>{
           if (!running) return;
@@ -649,11 +662,9 @@
             });
           }
         }, 1000);
-      } else {
-        // таймера нет: прячем визуально, но оставляем место в макете
-        hudTimer.textContent = "";
-        hudTimer.style.opacity = '0';
-        hudTimer.style.visibility = 'hidden';
+      } else if (hudTimer){
+        hudTimer.classList.add('hidden');
+        hudTimer.textContent = '';
       }
 
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
@@ -677,7 +688,6 @@
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
-
     function startLevel(){
       const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
       currentLevel++;
@@ -705,51 +715,26 @@
       setQuestionText(currentQuestion.target || currentQuestion.question || '');
       stopSpawning();
       clearItems();
-
       const correct = correctArr.map(v => ({ val: v, good: true }));
       const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
       const pool = [...correct, ...wrong];
       if (!pool.length) return;
-
-      const uniqueValues = [...new Set(pool.map(p => p.val))];
-      const allowDupOnScreen = uniqueValues.length === 1;
-
-      const DIR_MODE = (cfg.direction || 'down');
-      const isRandomMode = DIR_MODE === 'random';
-
       const gh  = game.clientHeight || 600;
       const fps = 60;
       const fallDistPx  = gh + 320;
-
+      const fallTimeSec = fallDistPx / (SPEED.vel * fps);
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
-
-      let fallTimeSec;
-      if (isRandomMode){
-        // "время жизни" одной штуки на экране, 6–10 секунд
-        fallTimeSec = 10 - sNorm * 4;
-      } else {
-        fallTimeSec = fallDistPx / (SPEED.vel * fps);
-      }
-
-      let targetActive, maxActive;
-      if (isRandomMode){
-        // в рандом‑режиме можно больше объектов
-        targetActive = 5 + Math.round(sNorm * 3); // 5–8
-        maxActive    = targetActive + 1;
-      } else {
-        targetActive = 3 + Math.round(sNorm * 3); // 3–6
-        maxActive    = 4;                         // жёсткий максимум 4
-      }
-
+      const DIR = (cfg.direction || 'down');
+      const targetActive = (DIR === 'random')
+        ? 6 + Math.round(sNorm * 3)   // random: 6–9
+        : 3 + Math.round(sNorm * 3);  // обычный: 3–6
+      const maxActive    = (DIR === 'random') ? 8 : 4;
       let interval = (fallTimeSec / targetActive) * 1000;
-      interval = clamp(interval,
-        isRandomMode ? 380 : 420,
-        isRandomMode ? 1600 : 2000
-      );
-
+      interval = clamp(interval, 420, 2000);
       let lastSpawnValue = null;
       let lastLane = -1;
-
+      const uniqueValues = [...new Set(pool.map(p => p.val))];
+      const allowDupOnScreen = uniqueValues.length === 1;
       function countOnScreen(val){
         let n = 0;
         document.querySelectorAll('.item').forEach(el=>{
@@ -757,7 +742,6 @@
         });
         return n;
       }
-
       function spawnTick(){
         if (!running) return;
         const activeNow = document.querySelectorAll('.item').length;
@@ -785,33 +769,33 @@
           chosen = pool[Math.floor(Math.random()*poolLen)];
         }
         lastSpawnValue = chosen.val;
-
         const gameW = game.clientWidth || 800;
-        // динамическое количество дорожек, но не меньше 3 и не больше 6
-        const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
-        const laneWidth = gameW / laneCount;
-        let lane = Math.floor(Math.random()*laneCount);
-        if (laneCount > 1 && lane === lastLane){
-          lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
+        if (DIR === 'random'){
+          // координаты в random считаются внутри drop
+          drop(chosen, null);
+        } else {
+          const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
+          const laneWidth = gameW / laneCount;
+          let lane = Math.floor(Math.random()*laneCount);
+          if (laneCount > 1 && lane === lastLane){
+            lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
+          }
+          lastLane = lane;
+          const xMin = lane * laneWidth + 18;
+          const xMax = (lane+1)*laneWidth - 18;
+          const spawnX = rnd(xMin, xMax);
+          drop(chosen, spawnX);
         }
-        lastLane = lane;
-        const xMin = lane * laneWidth + 18;
-        const xMax = (lane+1)*laneWidth - 18;
-        const spawnX = rnd(xMin, xMax);
-        drop(chosen, spawnX);
       }
-
       spawnerHandle = setInterval(spawnTick, interval);
     }
-
-    /* ===== Элемент: создание / движение / клик ===== */
+    /* ===== Элемент: создание / падение / клик ===== */
     function drop(obj, forcedX){
       const game = document.getElementById('game');
       const STYLE = cfg.style || {};
       const FONT = cfg.font || 'Rubik';
       const FONT_SIZE = Number(cfg.fontSize || 24);
       const TEXT_COLOR = cfg.textColor || '#ffffff';
-
       const el = document.createElement('div');
       el.className =
         `item shape-${STYLE.shape || 'rounded'} `+
@@ -822,7 +806,6 @@
       el.dataset.good  = obj.good ? '1' : '0';
       el.dataset.value = obj.val;
       el.style.setProperty('--glow', STYLE.glowColor || '#00f0ff');
-
       const bg = document.createElement('div');
       bg.className = 'bg';
       const content = document.createElement('div');
@@ -831,7 +814,6 @@
       content.style.padding = PAD + 'px';
       const IMG_BOX = Number(STYLE.imgBox || 160);
       el.appendChild(bg); el.appendChild(content);
-
       // фон
       const bgCol = STYLE.bgColor || 'transparent';
       let bgList = [];
@@ -887,7 +869,6 @@
         bg.style.removeProperty('--bc');
         bg.style.borderWidth = '0px';
       }
-
       // контент
       if (/^https?:\/\//i.test(obj.val)) {
         const img = document.createElement('img');
@@ -925,28 +906,25 @@
       }
 
       const DIR = (cfg.direction || 'down');
-      const isRandom = DIR === 'random';
-
       const gw = game.clientWidth;
       const gh = game.clientHeight;
+      let x, y;
       const MARGIN = 20;
 
-      let x, y;
-      if (isRandom){
-        x = (typeof forcedX === 'number') ? forcedX : rnd(MARGIN, gw - MARGIN);
-        y = rnd(70, Math.max(80, gh - 160));
-      } else if (DIR === 'down' || DIR === 'up') {
+      if (DIR === 'down' || DIR === 'up') {
         x = (typeof forcedX === 'number') ? forcedX : rnd(MARGIN, gw - MARGIN);
         y = (DIR === 'down') ? -160 : (gh + 160);
-      } else {
+      } else if (DIR === 'left' || DIR === 'right') {
         y = rnd(16, gh - 140);
         x = (DIR === 'left') ? -220 : (gw + 220);
+      } else { // random
+        x = rnd(MARGIN, gw - MARGIN - 160);
+        y = rnd(40, gh - 160);
       }
 
       el.style.left = x + 'px';
       el.style.top  = y + 'px';
       game.appendChild(el);
-
       fitGeometryBox(el);
       autoFitText(el, FONT_SIZE, 12);
       if ((cfg.language||'') === 'math'){
@@ -962,25 +940,12 @@
       let t = 0;
       let alive = true;
 
-      // для random-режима
-      let dx = 0, dy = 0;
-      let life = 0;
-      const LIFE_LIMIT = 14 * 60; // ~14 секунд при 60fps
-      let hover = false;
-
-      if (isRandom){
-        const base = vel * 0.22;
-        dx = (Math.random()*2 - 1) * base;
-        dy = (Math.random()*2 - 1) * base;
-        el.addEventListener('mouseenter', ()=>{
-          hover = true;
-          el.classList.add('rand-hover');
-        });
-        el.addEventListener('mouseleave', ()=>{
-          hover = false;
-          el.classList.remove('rand-hover');
-        });
-      }
+      // random‑вектор движения для режима "Рандом"
+      const baseRandVel = vel * 0.45;
+      let dx = rnd(-baseRandVel, baseRandVel);
+      let dy = rnd(-baseRandVel, baseRandVel);
+      if (Math.abs(dx) < 0.2) dx = 0.2 * Math.sign(Math.random()*2-1);
+      if (Math.abs(dy) < 0.2) dy = 0.2 * Math.sign(Math.random()*2-1);
 
       function adjustX(){
         if (!(DIR === 'down' || DIR === 'up')) return;
@@ -995,62 +960,17 @@
 
       function step(){
         if(!alive) return;
-
-        // пока анимация caught/shake — даём ей доиграть
+        // если сейчас проигрывается caught/ошибка — даём анимации спокойно идти
         if (el.classList.contains('caught') || el.classList.contains('shake')){
           requestAnimationFrame(step);
           return;
         }
-
         t += 1;
-
-        if (isRandom){
-          const base = vel * 0.22;
-          const slow = hover ? 0.35 : 1;
-          x += dx * slow;
-          y += dy * slow;
-
-          const w = el.offsetWidth || 120;
-          const h = el.offsetHeight || 80;
-
-          if (x < MARGIN){
-            x = MARGIN;
-            dx = Math.abs(dx) + (Math.random()-0.5)*base*0.2;
-          }
-          if (x > gw - w - MARGIN){
-            x = gw - w - MARGIN;
-            dx = -Math.abs(dx) + (Math.random()-0.5)*base*0.2;
-          }
-          if (y < MARGIN){
-            y = MARGIN;
-            dy = Math.abs(dy) + (Math.random()-0.5)*base*0.2;
-          }
-          if (y > gh - h - MARGIN){
-            y = gh - h - MARGIN;
-            dy = -Math.abs(dy) + (Math.random()-0.5)*base*0.2;
-          }
-
-          if (Math.abs(dx) < base*0.25) dx += (Math.random()-0.5)*base*0.5;
-          if (Math.abs(dy) < base*0.25) dy += (Math.random()-0.5)*base*0.5;
-          const maxVel = base*1.5;
-          dx = clamp(dx, -maxVel, maxVel);
-          dy = clamp(dy, -maxVel, maxVel);
-
-          el.style.left = x+'px';
-          el.style.top  = y+'px';
-
-          life++;
-          if (life > LIFE_LIMIT){
-            alive = false;
-            if (el.dataset.good === '1') missedCorrect++;
-            el.remove();
-            return;
-          }
-        } else if (DIR === 'down'){
+        if (DIR === 'down'){
           y += vel;
-          const dxSwing = Math.sin(t*swayFreq) * swayAmp;
+          const tx = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${dxSwing}px)`;
+          el.style.transform = `translateX(${tx}px)`;
           if (y > gh + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -1058,9 +978,9 @@
           }
         } else if (DIR === 'up'){
           y -= vel;
-          const dxSwing = Math.sin(t*swayFreq) * swayAmp;
+          const tx = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${dxSwing}px)`;
+          el.style.transform = `translateX(${tx}px)`;
           if (y < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -1068,29 +988,70 @@
           }
         } else if (DIR === 'left'){
           x += vel;
-          const dySwing = Math.sin(t*swayFreq) * swayAmp;
+          const ty = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dySwing}px)`;
+          el.style.transform = `translateY(${ty}px)`;
           if (x > gw + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
-        } else { // right
+        } else if (DIR === 'right'){
           x -= vel;
-          const dySwing = Math.sin(t*swayFreq) * swayAmp;
+          const ty = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dySwing}px)`;
+          el.style.transform = `translateY(${ty}px)`;
           if (x < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
-        }
+        } else { // random
+          x += dx;
+          y += dy;
 
+          const W = el.offsetWidth;
+          const H = el.offsetHeight;
+
+          if (x < MARGIN){
+            x = MARGIN; dx = Math.abs(dx) + rnd(0,0.15);
+          }
+          if (x > gw - W - MARGIN){
+            x = gw - W - MARGIN; dx = -Math.abs(dx) - rnd(0,0.15);
+          }
+          if (y < 30){
+            y = 30; dy = Math.abs(dy) + rnd(0,0.15);
+          }
+          if (y > gh - H - 30){
+            y = gh - H - 30; dy = -Math.abs(dy) - rnd(0,0.15);
+          }
+          // мягкое дрейфование
+          if (Math.abs(dx) < baseRandVel*0.3) dx += (Math.random()-0.5)*baseRandVel*0.3;
+          if (Math.abs(dy) < baseRandVel*0.3) dy += (Math.random()-0.5)*baseRandVel*0.3;
+          dx = clamp(dx, -baseRandVel, baseRandVel);
+          dy = clamp(dy, -baseRandVel, baseRandVel);
+
+          el.style.left = x+'px';
+          el.style.top  = y+'px';
+          // transform тут не трогаем — он только для scale при hover
+        }
         requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
+
+      // hover‑эффекты только для режима Рандом
+      if ((cfg.direction || 'down') === 'random'){
+        el.addEventListener('mouseenter', ()=>{
+          dx *= 0.35;
+          dy *= 0.35;
+          el.style.transform = 'scale(1.12)';
+        });
+        el.addEventListener('mouseleave', ()=>{
+          dx *= 2.2;
+          dy *= 2.2;
+          el.style.transform = 'scale(1)';
+        });
+      }
 
       el.addEventListener('click', (ev)=>{
         if (!running) return;
@@ -1131,7 +1092,6 @@
         }
       });
     }
-
     function finishLevelAfter(clickedEl){
       stopSpawning();
       setTimeout(()=>{
@@ -1152,7 +1112,6 @@
         }
       }, 650);
     }
-
     /* ===== Геометрия / автофит ===== */
     function fitGeometryBox(el){
       const STYLE = cfg.style || {};
@@ -1193,7 +1152,6 @@
         fs -= 1;
       }
     }
-
     /* ===== Эффекты ===== */
     function playPop(el){
       try{
