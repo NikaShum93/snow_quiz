@@ -396,9 +396,9 @@
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
     // до старта игры не показываем рамку счётчика
-if (hudScore) {
-  hudScore.classList.add('hidden');
-}
+    if (hudScore) {
+      hudScore.classList.add('hidden');
+    }
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
@@ -409,7 +409,7 @@ if (hudScore) {
     let running = false;
     let globalTimerHandle = null;
     let globalTimeLeft = 0;
-    let spawnerHandle = null;   // interval id, НЕ timeout
+    let spawnerHandle = null;   // interval id
     let hits = 0;
     let wrongClicks = 0;
     let missedCorrect = 0;
@@ -420,7 +420,6 @@ if (hudScore) {
     let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
     /* ===== ФОНЫ ===== */
     let bgImgEl = null;
-
     (async function boot(){
       if(!GAME_ID){
         showFatal("No id", "Не передан id в строке запроса.");
@@ -449,7 +448,6 @@ if (hudScore) {
       setupBackgrounds();
       showStartOverlay();
     })();
-
     function setupBackgrounds(){
       const list = Array.isArray(cfg?.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
       if (!list.length){
@@ -477,10 +475,8 @@ if (hudScore) {
         _startLevel();
       };
     }
-
     /* ===== HUD / Оверлеи ===== */
     let overlayNode = null;
-
     function setQuestionText(text){
       const q = (text || '').trim();
       if (!hudQuestion) return;
@@ -508,7 +504,6 @@ if (hudScore) {
       hudQuestion.style.fontSize   = size + 'px';
       hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
     }
-
     function showFatal(title, message){
       const ov = document.createElement('div');
       ov.className = 'overlay';
@@ -519,7 +514,6 @@ if (hudScore) {
         </div>`;
       document.body.appendChild(ov);
     }
-
     function showStartOverlay(){
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
@@ -546,7 +540,6 @@ if (hudScore) {
         startGame();
       }, { once: true });
     }
-
     function showGameCompleteOverlay(stats){
       if (overlayNode) overlayNode.remove();
       overlayNode = document.createElement('div');
@@ -580,7 +573,6 @@ if (hudScore) {
       document.body.appendChild(overlayNode);
       $('#btnRestart').addEventListener('click', ()=> location.reload(), { once:true });
     }
-
     /* ===== Геймплей ===== */
     function computeSpeedParams(S){
       const s = clamp(Number(S||5), 1, 10);
@@ -589,7 +581,6 @@ if (hudScore) {
       const basePts = 8 + (s-1) * (50-8)/9;
       return { vel, spawn, basePts: Math.round(basePts) };
     }
-
     function shuffleCopy(arr){
       const a = [...arr];
       for (let i = a.length - 1; i > 0; i--){
@@ -598,23 +589,18 @@ if (hudScore) {
       }
       return a;
     }
-
     function startGame(){
-       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-
-  // как только игра реально стартует — показываем счётчик
-  if (hudScore) {
-    hudScore.classList.remove('hidden');
-  }
-
-  score = 0;
-  hits = 0;
-  wrongClicks = 0;
-  missedCorrect = 0;
-  streak = 0;
-  hudScore.textContent = '0';
-  //
-
+      SPEED = computeSpeedParams(cfg?.speed ?? 5);
+      // как только игра реально стартует — показываем счётчик
+      if (hudScore) {
+        hudScore.classList.remove('hidden');
+      }
+      score = 0;
+      hits = 0;
+      wrongClicks = 0;
+      missedCorrect = 0;
+      streak = 0;
+      hudScore.textContent = '0';
       // таймер
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
@@ -647,7 +633,6 @@ if (hudScore) {
       } else {
         hudTimer.classList.add('hidden');
       }
-
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
@@ -655,24 +640,20 @@ if (hudScore) {
       running = true;
       startLevel();
     }
-
     function formatTime(sec){
       const m = Math.floor(sec / 60).toString().padStart(2,'0');
       const s = (sec % 60).toString().padStart(2,'0');
       return `${m}:${s}`;
     }
-
     function stopSpawning(){
       if (spawnerHandle){
-        clearInterval(spawnerHandle);   // <= теперь interval
+        clearInterval(spawnerHandle);   // interval
         spawnerHandle = null;
       }
     }
-
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
-
     function startLevel(){
       const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
       currentLevel++;
@@ -690,7 +671,6 @@ if (hudScore) {
         });
         return;
       }
-
       const game = document.getElementById('game');
       currentQuestion = levels[currentLevel - 1] || {};
       const correctArr = Array.isArray(currentQuestion.correct)
@@ -698,28 +678,32 @@ if (hudScore) {
         : [];
       neededCorrect = correctArr.length;
       foundCorrect = new Set();
-
       setQuestionText(currentQuestion.target || currentQuestion.question || '');
-
       stopSpawning();
       clearItems();
-
       const correct = correctArr.map(v => ({ val: v, good: true }));
       const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
       const pool = [...correct, ...wrong];
       if (!pool.length) return;
 
       const uniqueValues = [...new Set(pool.map(p => p.val))];
-      const allowDupOnScreen = uniqueValues.length === 1; // если только одно значение — дубли разрешены
+      const allowDupOnScreen = uniqueValues.length === 1;
 
       const gh  = game.clientHeight || 600;
       const fps = 60;
       const fallDistPx  = gh + 320;
       const fallTimeSec = fallDistPx / (SPEED.vel * fps);
-
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
-      const targetActive = 3 + Math.round(sNorm * 3); // 3–6
-      const maxActive    = 4;                         // жёсткий максимум 4
+
+      const dir = (cfg.direction || 'down');
+      const isRandomDir = (dir === 'random');
+
+      const targetActive = isRandomDir
+        ? 5 + Math.round(sNorm * 3) // 5–8
+        : 3 + Math.round(sNorm * 3); // 3–6
+
+      const baseMax = isRandomDir ? 8 : 4;  // максимум объектов на экране
+      const maxActive = baseMax;
 
       let interval = (fallTimeSec / targetActive) * 1000;
       interval = clamp(interval, 420, 2000);
@@ -737,13 +721,10 @@ if (hudScore) {
 
       function spawnTick(){
         if (!running) return;
-
         const activeNow = document.querySelectorAll('.item').length;
         if (activeNow >= maxActive){
-          // важно: ничего не откладываем => нет очереди и «пауз после 4 штук»
           return;
         }
-
         const poolLen = pool.length;
         if (!poolLen) return;
 
@@ -753,7 +734,6 @@ if (hudScore) {
           const cand = pool[Math.floor(Math.random() * poolLen)];
           const val  = cand.val;
           const sameOnScreen = countOnScreen(val);
-
           if (poolLen > 1 && val === lastSpawnValue){
             tries++; continue;
           }
@@ -769,24 +749,25 @@ if (hudScore) {
         lastSpawnValue = chosen.val;
 
         const gameW = game.clientWidth || 800;
-        // динамическое количество дорожек, но не меньше 3 и не больше 6
-        const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
-        const laneWidth = gameW / laneCount;
 
-        let lane = Math.floor(Math.random()*laneCount);
-        if (laneCount > 1 && lane === lastLane){
-          lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
+        if (isRandomDir){
+          // позицию берём прямо внутри drop (случайно по полю)
+          drop(chosen, null);
+        } else {
+          // нормальные «дорожки» сверху
+          const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
+          const laneWidth = gameW / laneCount;
+          let lane = Math.floor(Math.random()*laneCount);
+          if (laneCount > 1 && lane === lastLane){
+            lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
+          }
+          lastLane = lane;
+          const xMin = lane * laneWidth + 18;
+          const xMax = (lane+1)*laneWidth - 18;
+          const spawnX = rnd(xMin, xMax);
+          drop(chosen, spawnX);
         }
-        lastLane = lane;
-
-        const xMin = lane * laneWidth + 18;
-        const xMax = (lane+1)*laneWidth - 18;
-        const spawnX = rnd(xMin, xMax);
-
-        drop(chosen, spawnX);
       }
-
-      // ровный поток: один interval без рекурсий
       spawnerHandle = setInterval(spawnTick, interval);
     }
 
@@ -851,7 +832,6 @@ if (hudScore) {
         bg.style.backgroundColor = 'transparent';
       }
       bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
-
       const shapeKind = (STYLE.shape || 'rounded');
       if (STYLE.borderOn && STYLE.borderWidth > 0){
         const bw = `${parseInt(STYLE.borderWidth,10)}px`;
@@ -912,17 +892,23 @@ if (hudScore) {
       }
 
       const DIR = (cfg.direction || 'down');
-      const gw = game.clientWidth;
-      const gh = game.clientHeight;
+      const gw = game.clientWidth || window.innerWidth;
+      const gh = game.clientHeight || window.innerHeight;
       let x, y;
       const MARGIN = 20;
+
       if (DIR === 'down' || DIR === 'up') {
         x = (typeof forcedX === 'number') ? forcedX : rnd(MARGIN, gw - MARGIN);
         y = (DIR === 'down') ? -160 : (gh + 160);
+      } else if (DIR === 'random') {
+        // режим светлячков: сразу внутри поля
+        x = rnd(MARGIN, gw - MARGIN - 200);
+        y = rnd(MARGIN, gh - MARGIN - 200);
       } else {
         y = rnd(16, gh - 140);
         x = (DIR === 'left') ? -220 : (gw + 220);
       }
+
       el.style.left = x + 'px';
       el.style.top  = y + 'px';
       game.appendChild(el);
@@ -940,8 +926,14 @@ if (hudScore) {
       const vel = SPEED.vel;
       const swayAmp = rnd(6, 22);
       const swayFreq = rnd(0.003, 0.008);
+
+      // для random — отдельные скорости по X/Y
+      let dx = (Math.random()*2 - 1) * vel;
+      let dy = (Math.random()*2 - 1) * vel;
+
       let t = 0;
       let alive = true;
+      let lifeFrames = 0; // чтобы не жили вечно
 
       function adjustX(){
         if (!(DIR === 'down' || DIR === 'up')) return;
@@ -957,19 +949,20 @@ if (hudScore) {
       function step(){
         if(!alive) return;
 
-        // если сейчас проигрывается caught/ошибка — даём анимации спокойно идти
+        // даём анимациям caught/shake спокойно проигрываться
         if (el.classList.contains('caught') || el.classList.contains('shake')){
           requestAnimationFrame(step);
           return;
         }
 
         t += 1;
+        lifeFrames++;
 
         if (DIR === 'down'){
           y += vel;
-          const dx = Math.sin(t*swayFreq) * swayAmp;
+          const ddx = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${dx}px)`;
+          el.style.transform = `translateX(${ddx}px)`;
           if (y > gh + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -977,9 +970,9 @@ if (hudScore) {
           }
         } else if (DIR === 'up'){
           y -= vel;
-          const dx = Math.sin(t*swayFreq) * swayAmp;
+          const ddx = Math.sin(t*swayFreq) * swayAmp;
           el.style.top = y+'px';
-          el.style.transform = `translateX(${dx}px)`;
+          el.style.transform = `translateX(${ddx}px)`;
           if (y < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
@@ -987,25 +980,66 @@ if (hudScore) {
           }
         } else if (DIR === 'left'){
           x += vel;
-          const dy = Math.sin(t*swayFreq) * swayAmp;
+          const dy2 = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dy}px)`;
+          el.style.transform = `translateY(${dy2}px)`;
           if (x > gw + 200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
-        } else { // right
+        } else if (DIR === 'right'){
           x -= vel;
-          const dy = Math.sin(t*swayFreq) * swayAmp;
+          const dy2 = Math.sin(t*swayFreq) * swayAmp;
           el.style.left = x+'px';
-          el.style.transform = `translateY(${dy}px)`;
+          el.style.transform = `translateY(${dy2}px)`;
           if (x < -200){
             alive = false;
             if (el.dataset.good === '1') missedCorrect++;
             el.remove(); return;
           }
+        } else if (DIR === 'random'){
+          // светлячки: плавают и отскакивают от краёв
+          const W = el.offsetWidth  || 160;
+          const H = el.offsetHeight || 100;
+
+          x += dx;
+          y += dy;
+
+          if (x < MARGIN){
+            x = MARGIN;
+            dx = Math.abs(dx) * (0.7 + Math.random()*0.6);
+          }
+          if (x > gw - W - MARGIN){
+            x = gw - W - MARGIN;
+            dx = -Math.abs(dx) * (0.7 + Math.random()*0.6);
+          }
+          if (y < MARGIN){
+            y = MARGIN;
+            dy = Math.abs(dy) * (0.7 + Math.random()*0.6);
+          }
+          if (y > gh - H - MARGIN){
+            y = gh - H - MARGIN;
+            dy = -Math.abs(dy) * (0.7 + Math.random()*0.6);
+          }
+
+          // лёгкое "дрожание", чтобы не залипали
+          dx += (Math.random()-0.5)*0.08;
+          dy += (Math.random()-0.5)*0.08;
+          dx = clamp(dx, -vel*1.2, vel*1.2);
+          dy = clamp(dy, -vel*1.2, vel*1.2);
+
+          el.style.left = x + 'px';
+          el.style.top  = y + 'px';
+
+          // ограничиваем жизнь по времени (~12 сек на 60fps)
+          if (lifeFrames > 60*12){
+            alive = false;
+            if (el.dataset.good === '1') missedCorrect++;
+            el.remove(); return;
+          }
         }
+
         requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
@@ -1077,11 +1111,9 @@ if (hudScore) {
       const STYLE = cfg.style || {};
       const content = el.querySelector('.content');
       if (content && content.style.getPropertyValue('--cw')) return;
-
       const shape = STYLE.shape || 'rounded';
       el.style.width = ''; el.style.height='';
       const r = content.getBoundingClientRect();
-
       const hasImageFrame =
         String(STYLE.bgImage||'').trim() ||
         (Array.isArray(STYLE.bgImages) && STYLE.bgImages.length>0);
@@ -1096,7 +1128,6 @@ if (hudScore) {
       el.style.width = W + 'px';
       el.style.height = H + 'px';
     }
-
     function autoFitText(el, startPx, minPx){
       const span = el.querySelector('.content span');
       if(!span) return;
@@ -1136,7 +1167,6 @@ if (hudScore) {
         setTimeout(()=> s.remove(), 1000);
       }
     }
-
     function popScore(el, text, color){
       const r = el.getBoundingClientRect();
       const node = document.createElement('div');
@@ -1148,7 +1178,6 @@ if (hudScore) {
       document.body.appendChild(node);
       setTimeout(()=> node.remove(), 900);
     }
-
     function smallFireworkAt(el){
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width/2;
@@ -1167,7 +1196,6 @@ if (hudScore) {
         setTimeout(()=> p.remove(), 900);
       }
     }
-
     function fireworks(count=18){
       const W = window.innerWidth, H = window.innerHeight;
       for(let k=0;k<count;k++){
