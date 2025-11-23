@@ -395,6 +395,10 @@
     const hudTimer    = $('#hudTimer');
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
+    // до старта игры не показываем рамку счётчика
+if (hudScore) {
+  hudScore.classList.add('hidden');
+}
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
@@ -596,13 +600,20 @@
     }
 
     function startGame(){
-      SPEED = computeSpeedParams(cfg?.speed ?? 5);
-      score = 0;
-      hits = 0;
-      wrongClicks = 0;
-      missedCorrect = 0;
-      streak = 0;
-      hudScore.textContent = '0';
+       SPEED = computeSpeedParams(cfg?.speed ?? 5);
+
+  // как только игра реально стартует — показываем счётчик
+  if (hudScore) {
+    hudScore.classList.remove('hidden');
+  }
+
+  score = 0;
+  hits = 0;
+  wrongClicks = 0;
+  missedCorrect = 0;
+  streak = 0;
+  hudScore.textContent = '0';
+  //
 
       // таймер
       if (globalTimerHandle){
