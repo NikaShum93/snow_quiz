@@ -411,12 +411,10 @@
     const hudTimer    = $('#hudTimer');
     const hudScore    = $('#hudScore');
     const hudQuestion = $('#hudQuestion');
-
     // до старта игры не показываем рамку счётчика
     if (hudScore) {
       hudScore.classList.add('hidden');
     }
-
     /* ===== Звук ===== */
     const popSound   = new Audio("pop.mp3");
     const wrongSound = new Audio("wrong.mp3");
@@ -438,7 +436,6 @@
     let SPEED = { vel: 1.5, spawn: 1000, basePts: 20 };
     /* ===== ФОНЫ ===== */
     let bgImgEl = null;
-
     (async function boot(){
       if(!GAME_ID){
         showFatal("No id", "Не передан id в строке запроса.");
@@ -465,17 +462,14 @@
         document.documentElement.style.setProperty('--glow', cfg.style.glowColor);
       }
       if (cfg.cursor) document.body.style.cursor = `url(${cfg.cursor}), auto`;
-
       // если в конфиге нет таймера — пузырь таймера вообще не нужен
       const gTime = Number(cfg?.globalTimer || 0);
       if (!gTime && hudTimer){
         hudTimer.parentNode && hudTimer.parentNode.removeChild(hudTimer);
       }
-
       setupBackgrounds();
       showStartOverlay();
     })();
-
     function setupBackgrounds(){
       const list = Array.isArray(cfg?.backgrounds) ? cfg.backgrounds.filter(Boolean) : [];
       if (!list.length){
@@ -620,19 +614,16 @@
     }
     function startGame(){
       SPEED = computeSpeedParams(cfg?.speed ?? 5);
-
       // как только игра реально стартует — показываем счётчик
       if (hudScore) {
         hudScore.classList.remove('hidden');
       }
-
       score = 0;
       hits = 0;
       wrongClicks = 0;
       missedCorrect = 0;
       streak = 0;
       hudScore.textContent = '0';
-
       // таймер
       if (globalTimerHandle){
         clearInterval(globalTimerHandle);
@@ -666,7 +657,6 @@
         hudTimer.classList.add('hidden');
         hudTimer.textContent = '';
       }
-
       if (cfg.randomLevels && Array.isArray(cfg.levels)) {
         cfg.levels = shuffleCopy(cfg.levels);
       }
@@ -688,6 +678,8 @@
     function clearItems(){
       document.querySelectorAll('.item').forEach(n => n.remove());
     }
+
+    /* ===== УРОВЕНЬ + спавн ===== */
     function startLevel(){
       const levels = Array.isArray(cfg.levels) ? cfg.levels : [];
       currentLevel++;
@@ -705,36 +697,47 @@
         });
         return;
       }
+
       const game = document.getElementById('game');
       currentQuestion = levels[currentLevel - 1] || {};
+
       const correctArr = Array.isArray(currentQuestion.correct)
         ? currentQuestion.correct.filter(Boolean)
         : [];
       neededCorrect = correctArr.length;
       foundCorrect = new Set();
+
       setQuestionText(currentQuestion.target || currentQuestion.question || '');
+
       stopSpawning();
       clearItems();
+
       const correct = correctArr.map(v => ({ val: v, good: true }));
       const wrong   = (currentQuestion.wrong || []).map(v => ({ val: v, good: false }));
-      const pool = [...correct, ...wrong];
+      const pool    = [...correct, ...wrong];
       if (!pool.length) return;
+
       const gh  = game.clientHeight || 600;
       const fps = 60;
       const fallDistPx  = gh + 320;
       const fallTimeSec = fallDistPx / (SPEED.vel * fps);
       const sNorm = clamp((Number(cfg?.speed ?? 5) - 1) / 9, 0, 1);
-      const DIR = (cfg.direction || 'down');
+      const DIR   = (cfg.direction || 'down');
+
       const targetActive = (DIR === 'random')
         ? 6 + Math.round(sNorm * 3)   // random: 6–9
         : 3 + Math.round(sNorm * 3);  // обычный: 3–6
       const maxActive    = (DIR === 'random') ? 8 : 4;
+
       let interval = (fallTimeSec / targetActive) * 1000;
       interval = clamp(interval, 420, 2000);
+
       let lastSpawnValue = null;
       let lastLane = -1;
+
       const uniqueValues = [...new Set(pool.map(p => p.val))];
       const allowDupOnScreen = uniqueValues.length === 1;
+
       function countOnScreen(val){
         let n = 0;
         document.querySelectorAll('.item').forEach(el=>{
@@ -742,66 +745,82 @@
         });
         return n;
       }
-     const isRandomDir = (cfg.direction === 'random');
 
-  let chosen = null;
-  let tries = 0;
-  while (tries < 30) {
-    const cand = pool[Math.floor(Math.random() * poolLen)];
-    const val  = cand.val;
-    const sameOnScreen = countOnScreen(val);
+      const isRandomDir = (DIR === 'random');
 
-    // не спавним подряд одно и то же
-    if (poolLen > 1 && val === lastSpawnValue) {
-      tries++; 
-      continue;
-    }
-    // в режиме random запрещаем дубликаты на экране
-    if (isRandomDir && !allowDupOnScreen && sameOnScreen >= 1) {
-      tries++;
-      continue;
-    }
-    // в обычных режимах – старое поведение
-    if (!isRandomDir && !allowDupOnScreen && sameOnScreen >= 1) {
-      tries++;
-      continue;
-    }
+      function spawnTick(){
+        if (!running) return;
 
-    chosen = cand;
-    break;
-  }
+        const activeNow = document.querySelectorAll('.item').length;
+        if (activeNow >= maxActive) return;
 
-  if (!chosen) {
-    // В режиме RANDOM, если подходящего без дублей не нашли — просто пропускаем этот тик
-    if (isRandomDir && !allowDupOnScreen) {
-      return;
-    }
-    // В остальных режимах оставляем старый запасной вариант
-    chosen = pool[Math.floor(Math.random() * poolLen)];
-  }
+        const poolLen = pool.length;
+        if (!poolLen) return;
 
-  lastSpawnValue = chosen.val;
-}
+        let chosen = null;
+        let tries = 0;
+
+        while (tries < 30){
+          const cand = pool[Math.floor(Math.random() * poolLen)];
+          const val  = cand.val;
+          const sameOnScreen = countOnScreen(val);
+
+          // не спавним подряд одно и то же
+          if (poolLen > 1 && val === lastSpawnValue){
+            tries++; 
+            continue;
+          }
+          // в режиме random – без дублей на экране
+          if (isRandomDir && !allowDupOnScreen && sameOnScreen >= 1){
+            tries++;
+            continue;
+          }
+          // в обычных направлениях – старое поведение
+          if (!isRandomDir && !allowDupOnScreen && sameOnScreen >= 1){
+            tries++;
+            continue;
+          }
+          chosen = cand;
+          break;
+        }
+
+        if (!chosen){
+          // В random, если без дублей уже никак — просто пропускаем тик
+          if (isRandomDir && !allowDupOnScreen){
+            return;
+          }
+          // В остальных режимах — запасной вариант
+          chosen = pool[Math.floor(Math.random() * poolLen)];
+        }
+
+        lastSpawnValue = chosen.val;
+
         const gameW = game.clientWidth || 800;
+
         if (DIR === 'random'){
-          // координаты в random считаются внутри drop
+          // координаты полностью внутри drop()
           drop(chosen, null);
         } else {
           const laneCount = clamp(Math.floor(gameW / 260), 3, 6);
-          const laneWidth = gameW / laneCount;
+          const laneWidth = laneCount ? gameW / laneCount : gameW;
+
           let lane = Math.floor(Math.random()*laneCount);
           if (laneCount > 1 && lane === lastLane){
             lane = (lane + 1 + Math.floor(Math.random() * (laneCount - 1))) % laneCount;
           }
           lastLane = lane;
+
           const xMin = lane * laneWidth + 18;
           const xMax = (lane+1)*laneWidth - 18;
           const spawnX = rnd(xMin, xMax);
+
           drop(chosen, spawnX);
         }
       }
+
       spawnerHandle = setInterval(spawnTick, interval);
     }
+
     /* ===== Элемент: создание / падение / клик ===== */
     function drop(obj, forcedX){
       const game = document.getElementById('game');
@@ -809,6 +828,7 @@
       const FONT = cfg.font || 'Rubik';
       const FONT_SIZE = Number(cfg.fontSize || 24);
       const TEXT_COLOR = cfg.textColor || '#ffffff';
+
       const el = document.createElement('div');
       el.className =
         `item shape-${STYLE.shape || 'rounded'} `+
@@ -819,6 +839,7 @@
       el.dataset.good  = obj.good ? '1' : '0';
       el.dataset.value = obj.val;
       el.style.setProperty('--glow', STYLE.glowColor || '#00f0ff');
+
       const bg = document.createElement('div');
       bg.className = 'bg';
       const content = document.createElement('div');
@@ -827,6 +848,7 @@
       content.style.padding = PAD + 'px';
       const IMG_BOX = Number(STYLE.imgBox || 160);
       el.appendChild(bg); el.appendChild(content);
+
       // фон
       const bgCol = STYLE.bgColor || 'transparent';
       let bgList = [];
@@ -851,6 +873,7 @@
         }
       }
       bgList = bgList.filter(Boolean);
+
       if (!bgList.length){
         bg.style.backgroundImage = 'none';
         bg.style.backgroundColor = bgCol;
@@ -860,6 +883,7 @@
         bg.style.backgroundColor = 'transparent';
       }
       bg.style.opacity = String(clamp(Number(STYLE.opacity ?? 1), 0, 1));
+
       const shapeKind = (STYLE.shape || 'rounded');
       if (STYLE.borderOn && STYLE.borderWidth > 0){
         const bw = `${parseInt(STYLE.borderWidth,10)}px`;
@@ -882,6 +906,7 @@
         bg.style.removeProperty('--bc');
         bg.style.borderWidth = '0px';
       }
+
       // контент
       if (/^https?:\/\//i.test(obj.val)) {
         const img = document.createElement('img');
@@ -938,6 +963,7 @@
       el.style.left = x + 'px';
       el.style.top  = y + 'px';
       game.appendChild(el);
+
       fitGeometryBox(el);
       autoFitText(el, FONT_SIZE, 12);
       if ((cfg.language||'') === 'math'){
@@ -979,6 +1005,7 @@
           return;
         }
         t += 1;
+
         if (DIR === 'down'){
           y += vel;
           const tx = Math.sin(t*swayFreq) * swayAmp;
@@ -1022,10 +1049,8 @@
         } else { // random
           x += dx;
           y += dy;
-
           const W = el.offsetWidth;
           const H = el.offsetHeight;
-
           if (x < MARGIN){
             x = MARGIN; dx = Math.abs(dx) + rnd(0,0.15);
           }
@@ -1043,7 +1068,6 @@
           if (Math.abs(dy) < baseRandVel*0.3) dy += (Math.random()-0.5)*baseRandVel*0.3;
           dx = clamp(dx, -baseRandVel, baseRandVel);
           dy = clamp(dy, -baseRandVel, baseRandVel);
-
           el.style.left = x+'px';
           el.style.top  = y+'px';
           // transform тут не трогаем — он только для scale при hover
@@ -1105,6 +1129,7 @@
         }
       });
     }
+
     function finishLevelAfter(clickedEl){
       stopSpawning();
       setTimeout(()=>{
@@ -1125,6 +1150,7 @@
         }
       }, 650);
     }
+
     /* ===== Геометрия / автофит ===== */
     function fitGeometryBox(el){
       const STYLE = cfg.style || {};
@@ -1165,6 +1191,7 @@
         fs -= 1;
       }
     }
+
     /* ===== Эффекты ===== */
     function playPop(el){
       try{
