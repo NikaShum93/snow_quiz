@@ -742,33 +742,46 @@
         });
         return n;
       }
-      function spawnTick(){
-        if (!running) return;
-        const activeNow = document.querySelectorAll('.item').length;
-        if (activeNow >= maxActive){
-          return;
-        }
-        const poolLen = pool.length;
-        if (!poolLen) return;
-        let chosen = null;
-        let tries = 0;
-        while(tries < 30){
-          const cand = pool[Math.floor(Math.random() * poolLen)];
-          const val  = cand.val;
-          const sameOnScreen = countOnScreen(val);
-          if (poolLen > 1 && val === lastSpawnValue){
-            tries++; continue;
-          }
-          if (!allowDupOnScreen && sameOnScreen >= 1){
-            tries++; continue;
-          }
-          chosen = cand;
-          break;
-        }
-        if (!chosen){
-          chosen = pool[Math.floor(Math.random()*poolLen)];
-        }
-        lastSpawnValue = chosen.val;
+     const isRandomDir = (cfg.direction === 'random');
+
+  let chosen = null;
+  let tries = 0;
+  while (tries < 30) {
+    const cand = pool[Math.floor(Math.random() * poolLen)];
+    const val  = cand.val;
+    const sameOnScreen = countOnScreen(val);
+
+    // не спавним подряд одно и то же
+    if (poolLen > 1 && val === lastSpawnValue) {
+      tries++; 
+      continue;
+    }
+    // в режиме random запрещаем дубликаты на экране
+    if (isRandomDir && !allowDupOnScreen && sameOnScreen >= 1) {
+      tries++;
+      continue;
+    }
+    // в обычных режимах – старое поведение
+    if (!isRandomDir && !allowDupOnScreen && sameOnScreen >= 1) {
+      tries++;
+      continue;
+    }
+
+    chosen = cand;
+    break;
+  }
+
+  if (!chosen) {
+    // В режиме RANDOM, если подходящего без дублей не нашли — просто пропускаем этот тик
+    if (isRandomDir && !allowDupOnScreen) {
+      return;
+    }
+    // В остальных режимах оставляем старый запасной вариант
+    chosen = pool[Math.floor(Math.random() * poolLen)];
+  }
+
+  lastSpawnValue = chosen.val;
+
         const gameW = game.clientWidth || 800;
         if (DIR === 'random'){
           // координаты в random считаются внутри drop
