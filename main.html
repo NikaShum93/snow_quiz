@@ -499,33 +499,54 @@
     }
     /* ===== HUD / Оверлеи ===== */
     let overlayNode = null;
-    function setQuestionText(text){
-      const q = (text || '').trim();
-      if (!hudQuestion) return;
-      const lang = (cfg.language || 'ru').toLowerCase();
-      const isMath = (lang === 'math');
-      const qFont = cfg.questionFont || cfg.font || 'Rubik';
-      const baseSize = Number(cfg.questionFontSize || 26);
-      if (q){
-        document.body.classList.add('has-question');
-      } else {
-        document.body.classList.remove('has-question');
-      }
-      if (isMath && q){
-        hudQuestion.textContent = `\\(${q}\\)`;
-        MathJax.typesetPromise([hudQuestion]);
-      } else {
-        hudQuestion.textContent = q;
-      }
-      const len = q.length;
-      let size = baseSize;
-      if (!cfg.questionFontSize){
-        if (len > 110) size = 18;
-        else if (len > 60) size = 22;
-      }
-      hudQuestion.style.fontSize   = size + 'px';
-      hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
-    }
+   function setQuestionText(text){
+  const q = (text || '').trim();
+  if (!hudQuestion) return;
+
+  const lang   = (cfg.language || 'ru').toLowerCase();
+  const isMath = (lang === 'math');
+  const qFont  = cfg.questionFont || cfg.font || 'Rubik';
+  const baseSize = Number(cfg.questionFontSize || 26);
+
+  if (q){
+    document.body.classList.add('has-question');
+  } else {
+    document.body.classList.remove('has-question');
+  }
+
+  // 1) Если вопрос — просто ссылка на картинку
+  //    (например "https://site.com/image.png")
+  if (/^https?:\/\//i.test(q)){
+    hudQuestion.innerHTML =
+      `<img src="${q}" alt="" style="max-width:100%;height:auto;display:block;margin:0 auto;">`;
+    hudQuestion.style.fontSize = '';
+    hudQuestion.style.fontFamily = '';
+    return;
+  }
+
+  // 2) Если в вопросе уже есть HTML с <img ...>
+  if (q.includes('<img')){
+    hudQuestion.innerHTML = q;
+  } else if (isMath && q){
+    // математика в вопросе
+    hudQuestion.innerHTML = `\\(${q}\\)`; // важно: innerHTML, а не textContent
+    MathJax.typesetPromise([hudQuestion]);
+  } else {
+    // обычный текст
+    hudQuestion.textContent = q;
+  }
+
+  // Подбор размера шрифта для текстового вопроса
+  const plainLen = q.replace(/<[^>]*>/g,'').length;
+  let size = baseSize;
+  if (!cfg.questionFontSize){
+    if (plainLen > 110) size = 18;
+    else if (plainLen > 60) size = 22;
+  }
+  hudQuestion.style.fontSize   = size + 'px';
+  hudQuestion.style.fontFamily = `${qFont}, system-ui, sans-serif`;
+}
+
     function showFatal(title, message){
       const ov = document.createElement('div');
       ov.className = 'overlay';
