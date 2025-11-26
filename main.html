@@ -88,16 +88,19 @@
       opacity:1;
       transform:translateY(0);
     }
-    .questionBadge .hudQuestion{
+   .questionBadge .hudQuestion{
       font-weight:500;
       line-height:1.25;
       max-width:100%;
       white-space:normal;
       word-wrap:break-word;
-      max-height:4.4em;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
+      overflow:visible;     /* ← главное */
+      max-height:none;      /* ← убрать ограничение */
+}
+.hudQuestion img{
+      max-height:160px;   /* ← регулируешь сама: 120‑180 идеал */
+      width:auto;
+}
     /* ===== Оверлеи (старт / финал) ===== */
     .overlay{
       position:fixed; inset:0;
